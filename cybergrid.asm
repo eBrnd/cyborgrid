@@ -57,6 +57,12 @@ line_offset: .byte $00
   org $1000
 
 main SUBROUTINE
+  ; init music
+  lda #$00
+  tax
+  tay
+  jsr $4800
+
   ; set up raster interrupt
   sei
 
@@ -106,6 +112,9 @@ main_irq:
   ldx #>irq_01
   sta $0314
   stx $0315
+
+  ; play music
+  jsr $4803
 
   lda #$7e ; first line drawing interrupt
   clc
@@ -164,3 +173,6 @@ display_title SUBROUTINE
 
   org $2000-2
   INCBIN "titlescreen.prg"
+
+  org $4800-2
+  INCBIN "cyber.prg"
