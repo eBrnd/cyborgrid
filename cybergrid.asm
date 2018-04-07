@@ -45,7 +45,7 @@ line_offset: .byte $00
   nop
   REPEND
 
-  lda #$06
+  lda #$00
   sta $d020
   sta $d021
 
@@ -67,7 +67,7 @@ main SUBROUTINE
   lda #$01 ; enable raster interrupt
   sta $d01a
 
-  lda #$1b ; single color text mode
+  lda #$1b ; single color text mode ; TODO change/remove
   ldx #$08
   ldy #$14
   sta $d011
@@ -87,6 +87,8 @@ main SUBROUTINE
   asl $d019
 
   cli ; enable interrupt
+
+  jsr display_title
 
 .loop:
   jmp .loop
@@ -126,8 +128,39 @@ main_irq:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-delay SUBROUTINE ; ACC has amount of delay
-  sec
-  sbc #1
-  bne delay
+display_title SUBROUTINE
+  ; background is already set, so we don't need to do it here
+
+.loadimage:
+  lda $3f40,x
+  sta $0400,x
+  lda $4040,x
+  sta $0500,x
+  lda $4140,x
+  sta $0600,x
+  lda $4240,x
+  sta $0700,x
+  lda $4328,x
+  sta $d800,x
+  lda $4428,x
+  sta $d900,x
+  lda $4528,x
+  sta $da00,x
+  lda $4628,x
+  sta $db00,x
+  inx
+  bne .loadimage
+
+  lda #$3b
+  sta $d011
+  lda #$18
+  sta $d016
+  lda #$18
+  sta $d018
+
   rts
+
+; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  org $2000-2
+  INCBIN "titlescreen.prg"
