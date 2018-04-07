@@ -18,6 +18,12 @@ line_offset: .byte $00
   nop
   REPEND
 
+  IF #{3} == $7b
+  REPEAT 6
+  nop
+  REPEND
+  EIF
+
   lda #$05
   sta $d021
   sta $d020
@@ -37,8 +43,14 @@ line_offset: .byte $00
 
 .wait_line
   lda $d012
+  IF #{3} != $7b
   sec
   sbc line_offset
+  ELSE
+  sec
+  sbc #$04
+  EIF
+
   cmp #{3}+2
   bne .wait_line
   REPEAT 20
@@ -108,17 +120,17 @@ main_irq:
   and #$0f
   sta line_offset
 
-  lda #<irq_01
-  ldx #>irq_01
+  lda #<irq_00
+  ldx #>irq_00
   sta $0314
   stx $0315
 
   ; play music
   jsr $4803
 
-  lda #$7e ; first line drawing interrupt
-  clc
-  adc line_offset
+  lda #$7b ; first line drawing interrupt
+; clc
+; adc line_offset
   sta $d012
 
   asl $d019
@@ -126,14 +138,15 @@ main_irq:
 
 ; line scroll irq handlers ;;;;;;;;;;;;;
 
-  line_irq irq_01, irq_02, $7e, $8e
-  line_irq irq_02, irq_03, $8e, $9e
-  line_irq irq_03, irq_04, $9e, $ae
-  line_irq irq_04, irq_05, $ae, $be
-  line_irq irq_05, irq_06, $be, $ce
-  line_irq irq_06, irq_07, $ce, $de
-  line_irq irq_07, irq_08, $de, $ee
-  line_irq irq_08, main_irq, $ee, $11
+  line_irq irq_00, irq_01, $7b, $83
+  line_irq irq_01, irq_02, $83, $93
+  line_irq irq_02, irq_03, $93, $a3
+  line_irq irq_03, irq_04, $a3, $b3
+  line_irq irq_04, irq_05, $b3, $c3
+  line_irq irq_05, irq_06, $c3, $d3
+  line_irq irq_06, irq_07, $d3, $e3
+  line_irq irq_07, irq_08, $e3, $f0
+  line_irq irq_08, main_irq, $f0, $11
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
