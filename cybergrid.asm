@@ -85,9 +85,9 @@ main SUBROUTINE
   lda #$01 ; enable raster interrupt
   sta $d01a
 
-  lda #$1b ; single color text mode ; TODO change/remove
-  ldx #$08
-  ldy #$14
+  lda #$3b ; multi color bitmap mode
+  ldx #$18
+  ldy #$18
   sta $d011
   stx $d016
   sty $d018
@@ -129,8 +129,6 @@ main_irq:
   jsr $4803
 
   lda #$7b ; first line drawing interrupt
-; clc
-; adc line_offset
   sta $d012
 
   asl $d019
@@ -173,13 +171,6 @@ display_title SUBROUTINE
   sta $db00,x
   inx
   bne .loadimage
-
-  lda #$3b
-  sta $d011
-  lda #$18
-  sta $d016
-  lda #$18
-  sta $d018
 
   rts
 
