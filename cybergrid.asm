@@ -153,6 +153,7 @@ main_irq:
 display_title SUBROUTINE
   ; background is already set, so we don't need to do it here
 
+  ldx #$00
 .loadimage:
   lda $3f40,x
   sta $0400,x
