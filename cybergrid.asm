@@ -70,44 +70,10 @@ line_offset: .byte $00
   org $1000
 
 main SUBROUTINE
-  ; init music
-  lda #$00
-  tax
-  tay
-  jsr $4800
-
-  ; set up raster interrupt
-  sei
-
-  lda #$7f ; disable cia I, II, and VIC interrupts
-  sta $dc0d
-  sta $dd0d
-
-  lda #$01 ; enable raster interrupt
-  sta $d01a
-
-  lda #$3b ; multi color bitmap mode
-  ldx #$18
-  ldy #$18
-  sta $d011
-  stx $d016
-  sty $d018
-
-  lda #<main_irq ; install interrupt handler
-  ldx #>main_irq
-  sta $0314
-  stx $0315
-
-  ldy #$11 ; raster interrupt at line...
-  sty $d012
-
-  lda $dc02 ; clear pending interrupts
-  lda $dd0d
-  asl $d019
-
-  cli ; enable interrupt
-
+  jsr init_music
+  jsr setup_raster_interrupt
   jsr display_title
+
   jsr wait_for_any_fire_button
   jsr get_ready_screen
 
@@ -147,6 +113,49 @@ main_irq:
   line_irq irq_06, irq_07, $d3, $e3
   line_irq irq_07, irq_08, $e3, $f0
   line_irq irq_08, main_irq, $f0, $11
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+init_music SUBROUTINE
+  lda #$00
+  tax
+  tay
+  jsr $4800
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+setup_raster_interrupt SUBROUTINE
+  sei
+
+  lda #$7f ; disable cia I, II, and VIC interrupts
+  sta $dc0d
+  sta $dd0d
+
+  lda #$01 ; enable raster interrupt
+  sta $d01a
+
+  lda #$3b ; multi color bitmap mode
+  ldx #$18
+  ldy #$18
+  sta $d011
+  stx $d016
+  sty $d018
+
+  lda #<main_irq ; install interrupt handler
+  ldx #>main_irq
+  sta $0314
+  stx $0315
+
+  ldy #$11 ; raster interrupt at line...
+  sty $d012
+
+  lda $dc02 ; clear pending interrupts
+  lda $dd0d
+  asl $d019
+
+  cli ; enable interrupt
+  rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
