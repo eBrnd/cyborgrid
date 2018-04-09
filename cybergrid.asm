@@ -223,9 +223,6 @@ get_ready_screen SUBROUTINE
 
   jsr $e544 ; clear screen
 
-  lda #$01
-  sta $d020
-
   lda #$1b ; single color text mode
   ldx #$08
   ldy #$17 ; lowercase
@@ -238,6 +235,8 @@ get_ready_screen SUBROUTINE
   dey
   lda .get_ready_msg1,y
   sta $04d7,y
+  lda #$05
+  sta $d8d7,y
   tya
   bne .message1_loop
 
@@ -246,6 +245,8 @@ get_ready_screen SUBROUTINE
   dey
   lda .get_ready_msg2,y
   sta $0598,y
+  lda #$04
+  sta $d998,y
   tya
   bne .message2_loop
 
@@ -254,6 +255,8 @@ get_ready_screen SUBROUTINE
   dey
   lda .get_ready_msg3,y
   sta $05bf,y
+  lda #$04
+  sta $d9bf,y
   tya
   bne .message3_loop
 
@@ -261,10 +264,9 @@ get_ready_screen SUBROUTINE
 
   rts
 
-
 .get_ready_msg1: .byte "GET READY"
-.get_ready_msg2: .byte "PRESS BOTH FIRE BUTTONS"
-.get_ready_msg3: .byte "AT THE SAME TIME TO START"
+.get_ready_msg2: .byte 80,18,5,19,19,32,2,15,20,8,32,6,9,18,5,32,2,21,20,20,15,14,19
+.get_ready_msg3: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,20,1,18,20
 
 ; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
