@@ -181,16 +181,10 @@ display_title SUBROUTINE
 wait_for_fire_button SUBROUTINE
 .loop:
   lda $dc01
+  and $dc00
   and #$10
-  beq .out
+  bne .loop
 
-  lda $dc00
-  and #$10
-  beq .out
-
-  jmp .loop
-
-.out:
   rts
 
 ; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
