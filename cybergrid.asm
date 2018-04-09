@@ -108,8 +108,8 @@ main SUBROUTINE
   cli ; enable interrupt
 
   jsr display_title
-
-  jsr wait_for_fire_button
+  jsr wait_for_any_fire_button
+  jsr get_ready_screen
 
   brk
 
@@ -178,14 +178,93 @@ display_title SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-wait_for_fire_button SUBROUTINE
-.loop:
+wait_for_any_fire_button SUBROUTINE
+.wait_push:
   lda $dc01
   and $dc00
   and #$10
-  bne .loop
+  bne .wait_push
+
+  ldy #$18
+.delay_outer:
+  ldx #$ff
+.delay_inner:
+  dex
+  bne .delay_inner
+  dey
+  bne .delay_outer
+
+.wait_release:
+  lda $dc01
+  and $dc00
+  and #$10
+  beq .wait_release
 
   rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+wait_for_both_fire_buttons SUBROUTINE
+.loop:
+  lda $dc01
+  ora $dc00
+  and #$10
+  bne .loop
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+get_ready_screen SUBROUTINE
+  ; stop raster interrupt
+  sei
+  lda #$00
+  sta $d01a
+  cli
+
+  jsr $e544 ; clear screen
+
+  lda #$01
+  sta $d020
+
+  lda #$1b ; single color text mode
+  ldx #$08
+  ldy #$17 ; lowercase
+  sta $d011
+  stx $d016
+  sty $d018
+
+  ldy #$09
+.message1_loop:
+  dey
+  lda .get_ready_msg1,y
+  sta $04d7,y
+  tya
+  bne .message1_loop
+
+  ldy #$17
+.message2_loop:
+  dey
+  lda .get_ready_msg2,y
+  sta $0598,y
+  tya
+  bne .message2_loop
+
+  ldy #$19
+.message3_loop:
+  dey
+  lda .get_ready_msg3,y
+  sta $05bf,y
+  tya
+  bne .message3_loop
+
+  jsr wait_for_both_fire_buttons
+
+  rts
+
+
+.get_ready_msg1: .byte "GET READY"
+.get_ready_msg2: .byte "PRESS BOTH FIRE BUTTONS"
+.get_ready_msg3: .byte "AT THE SAME TIME TO START"
 
 ; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

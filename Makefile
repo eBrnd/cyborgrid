@@ -4,7 +4,7 @@ TARGET=cybergrid
 all: $(TARGET).prg
 
 run: $(TARGET).prg
-	x64 -joydev1 4 -joydev2 1 $(TARGET).prg || true
+	x64 -joydev1 2 -joydev2 1 $(TARGET).prg || true
 
 $(TARGET).prg: $(TARGET).asm titlescreen.prg cyber.prg
 	dasm $(TARGET).asm -o$(TARGET).prg
