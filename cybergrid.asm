@@ -109,8 +109,9 @@ main SUBROUTINE
 
   jsr display_title
 
-.loop:
-  jmp .loop
+  jsr wait_for_fire_button
+
+  brk
 
 ; irq handler ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -173,6 +174,23 @@ display_title SUBROUTINE
   inx
   bne .loadimage
 
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+wait_for_fire_button SUBROUTINE
+.loop:
+  lda $dc01
+  and #$10
+  beq .out
+
+  lda $dc00
+  and #$10
+  beq .out
+
+  jmp .loop
+
+.out:
   rts
 
 ; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
