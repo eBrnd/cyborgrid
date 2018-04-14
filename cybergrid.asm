@@ -75,6 +75,7 @@ main SUBROUTINE
   jsr display_title
 
   jsr wait_for_any_fire_button
+  jsr stop_music
   jsr get_ready_screen
   jsr countdown
 
@@ -292,6 +293,19 @@ get_ready_screen SUBROUTINE
 .get_ready_msg1: .byte "GET READY"
 .get_ready_msg2: .byte 80,18,5,19,19,32,2,15,20,8,32,6,9,18,5,32,2,21,20,20,15,14,19
 .get_ready_msg3: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,20,1,18,20
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+stop_music SUBROUTINE
+  lda #$00
+  ldx #$00
+.loop_sid_registers
+  sta $d400,x
+  inx
+  cpx #$1d
+  bne .loop_sid_registers
+
+  rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
