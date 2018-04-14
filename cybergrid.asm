@@ -76,6 +76,7 @@ main SUBROUTINE
 
   jsr wait_for_any_fire_button
   jsr get_ready_screen
+  jsr countdown
 
   brk
 
@@ -292,16 +293,62 @@ get_ready_screen SUBROUTINE
 .get_ready_msg2: .byte 80,18,5,19,19,32,2,15,20,8,32,6,9,18,5,32,2,21,20,20,15,14,19
 .get_ready_msg3: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,20,1,18,20
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+setup_sprites SUBROUTINE
+  ; sprites for countdown all have the same x and y coordinates and color
+  lda #sprite1/64
+  sta $07f8
+  lda #sprite2/64
+  sta $07f9
+  lda #sprite3/64
+  sta $07fa
+
+  lda #$84 ; x coord
+  sta $d000
+  sta $d002
+  sta $d004
+  lda #$64 ; y coord
+  sta $d001
+  sta $d003
+  sta $d005
+  lda #$05 ; color
+  sta $d027
+  sta $d028
+  sta $d029
+
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+countdown SUBROUTINE
+  ; todo switch to graphics mode and clear everything
+  lda #$00
+  sta $d020
+  sta $d021
+
+  jsr setup_sprites
+
+  ; enable sprite
+  lda #$04
+  sta $d015
+
+.loop:
+  jmp .loop
+
+  rts
+
 ; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   org $2000
-  INCBIN "titlescreen-bitmap.prg"
+  INCBIN "titlescreen-bitmap.prg" ; length: $1f40
 
-  org $3f40
+  ; no org directives here, let the assembler put it wherever it fits, as long as sprites fit
+  ; before $4000 it's fine
+  INCLUDE "sprites.asm"
+
 ts_charmem:
   INCBIN "titlescreen-charmem.prg" ; length: $190
-
-  org $40d0
 ts_colormem:
   INCBIN "titlescreen-colormem.prg" ; length: $190
 
