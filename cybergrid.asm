@@ -318,11 +318,11 @@ setup_sprites SUBROUTINE
   lda #sprite3/64
   sta $07fa
 
-  lda #$84 ; x coord
+  lda #$ab ; x coord
   sta $d000
   sta $d002
   sta $d004
-  lda #$64 ; y coord
+  lda #$67 ; y coord
   sta $d001
   sta $d003
   sta $d005
