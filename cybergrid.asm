@@ -162,24 +162,39 @@ setup_raster_interrupt SUBROUTINE
 display_title SUBROUTINE
   ; background is already set, so we don't need to do it here
 
+  ; only the first $190 bytes of the charmem and colormem are stored in the program, the rest is
+  ; just constants. Therefore, we have 3 cases here.
   ldx #$00
 .loadimage:
-  lda $3f40,x
+  ; simple case: just copy the first $ff bytes of charmem and colormem data over
+  lda ts_charmem,x
   sta $0400,x
-  lda $4040,x
-  sta $0500,x
-  lda $4140,x
-  sta $0600,x
-  lda $4240,x
-  sta $0700,x
-  lda $4328,x
+  lda ts_colormem,x
   sta $d800,x
-  lda $4428,x
+
+  ; branchy case: copy up to byte $18f, then fill with constant
+  cpx #$90
+  bcs .const
+  lda ts_charmem+$100,x
+  sta $0500,x
+  lda ts_colormem+$100,x
   sta $d900,x
-  lda $4528,x
+  jmp .end_branchy
+.const:
+  lda #$05
+  sta $0500,x
+  lda #$00
+  sta $d900,x
+.end_branchy:
+
+  ; trivial case: fill the rest with constants
+  lda #$05
+  sta $0600,x
+  sta $0700,x
+  lda #$00
   sta $da00,x
-  lda $4628,x
   sta $db00,x
+
   inx
   bne .loadimage
 
@@ -279,8 +294,16 @@ get_ready_screen SUBROUTINE
 
 ; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  org $2000-2
-  INCBIN "titlescreen.prg"
+  org $2000
+  INCBIN "titlescreen-bitmap.prg"
+
+  org $3f40
+ts_charmem:
+  INCBIN "titlescreen-charmem.prg" ; length: $190
+
+  org $40d0
+ts_colormem:
+  INCBIN "titlescreen-colormem.prg" ; length: $190
 
   org $4800-2
   INCBIN "cyber.prg"
