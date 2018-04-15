@@ -361,6 +361,7 @@ countdown SUBROUTINE
   jsr beep
 
   ldx #.countdown_delay
+  stx frame_ctr
   jsr wait_frame_ctr
 
   lsr $d015 ; enable "2" sprite
@@ -369,6 +370,7 @@ countdown SUBROUTINE
   jsr beep
 
   ldx #.countdown_delay
+  stx frame_ctr
   jsr wait_frame_ctr
 
   lsr $d015 ; enable "1" sprite
@@ -377,6 +379,7 @@ countdown SUBROUTINE
   jsr beep
 
   ldx #.countdown_delay
+  stx frame_ctr
   jsr wait_frame_ctr
 
   lda #$00
@@ -405,6 +408,7 @@ beep SUBROUTINE ; X = beep for how long
   lda #$21
   sta $d404
 
+  stx frame_ctr
   jsr wait_frame_ctr
 
   lda #$20
@@ -414,8 +418,7 @@ beep SUBROUTINE ; X = beep for how long
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-wait_frame_ctr SUBROUTINE ; x = wait time
-  stx frame_ctr
+wait_frame_ctr SUBROUTINE
 .wait_loop
   lda frame_ctr
   bne .wait_loop
