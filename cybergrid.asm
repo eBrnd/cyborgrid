@@ -79,6 +79,7 @@ main SUBROUTINE
   jsr stop_music
   jsr setup_game_sound
   jsr setup_sprites
+  jsr setup_game_irq
 
   jsr get_ready_screen
   jsr countdown
@@ -245,12 +246,6 @@ wait_for_both_fire_buttons SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 get_ready_screen SUBROUTINE
-  ; stop raster interrupt
-  sei
-  lda #$00
-  sta $d01a
-  cli
-
   jsr $e544 ; clear screen
 
   lda #$1b ; single color text mode
@@ -317,11 +312,11 @@ setup_game_sound SUBROUTINE
   ; initialize sid for beeps
   lda #$12 ; frequency high byte
   sta $d401
-  lda #$80 ; frequency low byte
+  lda #$2a ; frequency low byte
   sta $d400
-  lda #$07 ; AD
+  lda #$00 ; AD
   sta $d405
-  lda #$00 ; SR
+  lda #$f0 ; SR
   sta $d406
 
   lda #$0f ; SID volume (low nibble)
@@ -333,11 +328,11 @@ setup_game_sound SUBROUTINE
 
 setup_sprites SUBROUTINE
   ; sprites for countdown all have the same x and y coordinates and color
-  lda #sprite1/64
+  lda #sprite_1/64
   sta $07f8
-  lda #sprite2/64
+  lda #sprite_2/64
   sta $07f9
-  lda #sprite3/64
+  lda #sprite_3/64
   sta $07fa
 
   lda #$ab ; x coord
@@ -362,14 +357,119 @@ countdown SUBROUTINE
   lda #$04
   sta $d015
 
-  ; play a beep
+  ldx #$0f
+  jsr beep
+
+  ldx #.countdown_delay
+  jsr wait_frame_ctr
+
+  lsr $d015 ; enable "2" sprite
+
+  ldx #$0f
+  jsr beep
+
+  ldx #.countdown_delay
+  jsr wait_frame_ctr
+
+  lsr $d015 ; enable "1" sprite
+
+  ldx #$0f
+  jsr beep
+
+  ldx #.countdown_delay
+  jsr wait_frame_ctr
+
+  lda #$00
+  sta $d015 ; disable sprites
+
+  ; set frequency register to a higher note
+  lda #$24
+  sta $d401
+  lda #$55
+  sta $d400
+  ldx #$1e ; beep longer
+  jsr beep
+  ; reset freq. register
+  lda #$12 ; frequency high byte
+  sta $d401
+  lda #$2a ; frequency low byte
+  sta $d400
+
+  rts
+
+.countdown_delay set $22
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+beep SUBROUTINE ; X = beep for how long
   lda #$21
   sta $d404
 
-.loop:
-  jmp .loop
+  jsr wait_frame_ctr
+
+  lda #$20
+  sta $d404
 
   rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+wait_frame_ctr SUBROUTINE ; x = wait time
+  stx frame_ctr
+.wait_loop
+  lda frame_ctr
+  bne .wait_loop
+
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+setup_game_irq SUBROUTINE
+  sei
+
+  lda #$7f ; cia and vic interrupt disable
+  sta $dc0d
+  sta $dd0d
+
+  lda #$01 ; raster irq enable
+  sta $d01a
+
+  lda #$1b ; single color text mode
+  ldx #$08
+  ldy #$14
+  sta $d011
+  stx $d016
+  sty $d018
+
+  lda #<game_irq
+  ldx #>game_irq
+  sta $0314
+  stx $0315
+
+  ldy #$11 ; raster line to throw interrupt at
+  sty $d012
+
+  lda $dc02 ; clear pending interrupts
+  lda $dd0d
+  asl $d019
+
+  cli
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+game_irq SUBROUTINE
+  lda frame_ctr
+  beq .no_dec
+  dec frame_ctr
+.no_dec
+
+  ; interrupt ack
+  asl $d019
+  jmp $ea81
+
+frame_ctr .byte $00 ; gets decreased every frame if not yet 0, for timing etc.
+                    ; other routines might set it to different values and check for =0
 
 ; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
