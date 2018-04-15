@@ -358,11 +358,6 @@ setup_sprites SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 countdown SUBROUTINE
-  ; todo switch to graphics mode and clear everything
-  lda #$00
-  sta $d020
-  sta $d021
-
   ; enable "3" sprite
   lda #$04
   sta $d015
