@@ -71,7 +71,7 @@ line_offset: .byte $00
 
 main SUBROUTINE
   jsr init_music
-  jsr setup_raster_interrupt
+  jsr setup_titlescreen_raster_interrupt
   jsr display_title
 
   jsr wait_for_any_fire_button
@@ -131,7 +131,7 @@ init_music SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-setup_raster_interrupt SUBROUTINE
+setup_titlescreen_raster_interrupt SUBROUTINE
   sei
 
   lda #$7f ; disable cia I, II, and VIC interrupts
