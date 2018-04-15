@@ -75,7 +75,11 @@ main SUBROUTINE
   jsr display_title
 
   jsr wait_for_any_fire_button
+
   jsr stop_music
+  jsr setup_game_sound
+  jsr setup_sprites
+
   jsr get_ready_screen
   jsr countdown
 
@@ -309,6 +313,24 @@ stop_music SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+setup_game_sound SUBROUTINE
+  ; initialize sid for beeps
+  lda #$12 ; frequency high byte
+  sta $d401
+  lda #$80 ; frequency low byte
+  sta $d400
+  lda #$07 ; AD
+  sta $d405
+  lda #$00 ; SR
+  sta $d406
+
+  lda #$0f ; SID volume (low nibble)
+  sta $d418
+
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 setup_sprites SUBROUTINE
   ; sprites for countdown all have the same x and y coordinates and color
   lda #sprite1/64
@@ -341,11 +363,13 @@ countdown SUBROUTINE
   sta $d020
   sta $d021
 
-  jsr setup_sprites
-
-  ; enable sprite
+  ; enable "3" sprite
   lda #$04
   sta $d015
+
+  ; play a beep
+  lda #$21
+  sta $d404
 
 .loop:
   jmp .loop
