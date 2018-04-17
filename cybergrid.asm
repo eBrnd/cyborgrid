@@ -362,6 +362,9 @@ countdown SUBROUTINE
 
   ldx #.countdown_delay
   stx frame_ctr
+
+  jsr setup_game_board
+
   jsr wait_frame_ctr
 
   lsr $d015 ; enable "2" sprite
@@ -401,6 +404,94 @@ countdown SUBROUTINE
   rts
 
 .countdown_delay set $22
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+setup_game_board SUBROUTINE
+  lda #$3b ; multi color bitmap mode
+  ldx #$18
+  ldy #$18
+  sta $d011
+  stx $d016
+  sty $d018
+
+  lda $dd02
+  ora #$03
+  sta $dd02 ; set cia port to output (for controlling VIC)
+
+  lda $dd00
+  and #$fd
+  sta $dd00 ; bank vic to $8000-$bfff
+
+  ; TODO the banking can be done after the game board is set up, so we don't have to watch it
+  ;      -- in fact, it should be done after the countdown, so sprites continue working without any fancy tricks
+
+  ; screen ram at $8000, bitmap at $a000
+  lda #$08
+  sta $d018
+
+  ; fill bitmap memory
+  lda #$00
+  ldx #$00
+.fill_bitmap:
+  sta $a000,x
+  sta $a100,x
+  sta $a200,x
+  sta $a300,x
+  sta $a400,x
+  sta $a500,x
+  sta $a600,x
+  sta $a700,x
+  sta $a800,x
+  sta $a900,x
+  sta $aa00,x
+  sta $ab00,x
+  sta $ac00,x
+  sta $ad00,x
+  sta $ae00,x
+  sta $af00,x
+  sta $b000,x
+  sta $b100,x
+  sta $b200,x
+  sta $b300,x
+  sta $b400,x
+  sta $b500,x
+  sta $b600,x
+  sta $b700,x
+  sta $b800,x
+  sta $b900,x
+  sta $ba00,x
+  sta $bb00,x
+  sta $bc00,x
+  sta $bd00,x
+  sta $be00,x
+  sta $be40,x
+  inx
+  bne .fill_bitmap
+
+  ; fill colormem and charmem
+  lda #$00
+  ldx #$00
+.fill_charmem:
+  sta $8000,x
+  sta $8100,x
+  sta $8200,x
+  sta $8300,x
+  inx
+  bne .fill_charmem
+
+  lda #$00
+  ldx #$00
+.fill_colormem:
+  sta $d800,x
+  sta $d900,x
+  sta $da00,x
+  sta $db00,x
+  inx
+  bne .fill_colormem
+
+
+  rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
