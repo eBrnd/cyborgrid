@@ -6,6 +6,8 @@
 
 ; zeropage ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+ptr equ $fb ; use $fb and $fc as pointer
+
 ; variables ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   org $0900
 
@@ -470,7 +472,7 @@ setup_game_board SUBROUTINE
   bne .fill_bitmap
 
   ; fill colormem and charmem
-  lda #$00
+  lda #$ae
   ldx #$00
 .fill_charmem:
   sta $8000,x
@@ -490,8 +492,118 @@ setup_game_board SUBROUTINE
   inx
   bne .fill_colormem
 
+  ; todo can be removed later when we run it in context
+  lda #$00
+  sta $d021
+  lda #$05
+  sta $d020
+
+  lda #$00
+  sta .counter
+.loop:
+  ldy .counter
+  ldx #$9f
+  lda #$02
+  sta $02
+  jsr put_pixel
+
+  inc .counter
+  lda .counter
+  cmp #$c8
+  bne .loop
 
   rts
+
+.counter .byte #$00
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02 (last two bits)
+  ; reset pointer
+  lda #$a0
+  sta ptr+1
+  lda #$00
+  sta ptr
+
+  ; first, we need to calculate row and line by character
+  ; divide x coordiante by 4
+  txa
+  lsr
+  lsr
+  tax
+
+  ; divide y coordinate by 8
+  tya
+  lsr
+  lsr
+  lsr
+  tay
+
+  lda #$00
+  sta .char_pos
+  sta .char_pos+1
+
+  cpy #$00
+.line_loop:
+  beq .line_loop_out
+  lda .char_pos
+  clc
+  adc #$28
+  sta .char_pos
+  lda .char_pos+1
+  adc #$00
+  sta .char_pos+1
+  dey
+  jmp .line_loop
+.line_loop_out:
+
+  txa
+  clc
+  adc .char_pos
+  sta .char_pos
+  bcc .no_carry
+  inc .char_pos+1
+.no_carry:
+
+  ; multiply character position by 8 to get ptr to top left of char
+  lda .char_pos+1
+  asl
+  asl
+  asl
+  sta .char_pos+1
+
+  lda .char_pos
+  lsr
+  lsr
+  lsr
+  lsr
+  lsr
+  ora .char_pos+1
+  sta .char_pos+1
+
+  lda .char_pos
+  asl
+  asl
+  asl
+  sta .char_pos
+
+  lda ptr
+  clc
+  adc .char_pos
+  sta ptr
+  lda ptr+1
+  adc .char_pos+1
+  sta ptr+1
+
+  lda $02
+  ldy #$00
+  sta (ptr),y
+
+  rts
+
+.row .byte #$00
+.col .byte #$00
+.char_pos .byte #$00, #$00
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
