@@ -425,6 +425,10 @@ setup_game_board SUBROUTINE
   and #$fd
   sta $dd00 ; bank vic to $8000-$bfff
 
+  ; disable basic rom at $a000-$bfff
+  lda #$36
+  sta $0001
+
   ; TODO the banking can be done after the game board is set up, so we don't have to watch it
   ;      -- in fact, it should be done after the countdown, so sprites continue working without any fancy tricks
 
@@ -482,7 +486,7 @@ setup_game_board SUBROUTINE
   inx
   bne .fill_charmem
 
-  lda #$00
+  lda #$01
   ldx #$00
 .fill_colormem:
   sta $d800,x
@@ -511,6 +515,20 @@ setup_game_board SUBROUTINE
   lda .counter
   cmp #$a0
   bne .loop
+
+  lda #$00
+  sta .counter
+.loop2:
+  ldy .counter
+  ldx #$50
+  lda #$01
+  sta $02
+  jsr put_pixel
+
+  inc .counter
+  lda .counter
+  cmp #$a0
+  bne .loop2
 
   rts
 
@@ -618,8 +636,9 @@ put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02
   adc .char_pos+1
   sta ptr+1
 
-  lda $02
   ldy #$00
+  lda (ptr),y
+  ora $02
   sta (ptr),y
 
   rts
