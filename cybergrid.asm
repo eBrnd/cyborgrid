@@ -522,8 +522,12 @@ put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02
   ; reset pointer
   lda #$a0
   sta ptr+1
-  lda #$00
-  sta ptr
+
+  ; store last three bits of y in ptr. We do it this early because in the next step we will divide
+  ; y by 8, losing those three bits.
+  tya
+  and #$07
+  sta ptr ; lower byte of ptr is initialized here
 
   ; first, we need to calculate row and line by character
   ; divide x coordiante by 4
