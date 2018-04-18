@@ -502,14 +502,14 @@ setup_game_board SUBROUTINE
   sta .counter
 .loop:
   ldy .counter
-  ldx #$9f
+  ldx .counter
   lda #$02
   sta $02
   jsr put_pixel
 
   inc .counter
   lda .counter
-  cmp #$c8
+  cmp #$a0
   bne .loop
 
   rts
@@ -528,6 +528,25 @@ put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02
   tya
   and #$07
   sta ptr ; lower byte of ptr is initialized here
+
+  ; move color bits into right position
+  ; also done this early because leftmost bits of x will be deleted
+  txa
+  and #$03
+
+  cmp #$03
+  beq .shift_out
+  asl $02
+  asl $02
+  cmp #$02
+  beq .shift_out
+  asl $02
+  asl $02
+  cmp #$01
+  beq .shift_out
+  asl $02
+  asl $02
+.shift_out:
 
   ; first, we need to calculate row and line by character
   ; divide x coordiante by 4
