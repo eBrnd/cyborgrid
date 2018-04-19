@@ -365,7 +365,8 @@ countdown SUBROUTINE
   ldx #.countdown_delay
   stx frame_ctr
 
-  jsr setup_game_board
+  jsr prepare_memory
+  jsr clear_screen
 
   jsr wait_frame_ctr
 
@@ -390,6 +391,8 @@ countdown SUBROUTINE
   lda #$00
   sta $d015 ; disable sprites
 
+  jsr switch_video_mode
+
   ; set frequency register to a higher note
   lda #$24
   sta $d401
@@ -409,33 +412,16 @@ countdown SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-setup_game_board SUBROUTINE
-  lda #$3b ; multi color bitmap mode
-  ldx #$18
-  ldy #$18
-  sta $d011
-  stx $d016
-  sty $d018
-
-  lda $dd02
-  ora #$03
-  sta $dd02 ; set cia port to output (for controlling VIC)
-
-  lda $dd00
-  and #$fd
-  sta $dd00 ; bank vic to $8000-$bfff
-
+prepare_memory SUBROUTINE
   ; disable basic rom at $a000-$bfff
   lda #$36
   sta $0001
 
-  ; TODO the banking can be done after the game board is set up, so we don't have to watch it
-  ;      -- in fact, it should be done after the countdown, so sprites continue working without any fancy tricks
+  rts
 
-  ; screen ram at $8000, bitmap at $a000
-  lda #$08
-  sta $d018
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+clear_screen SUBROUTINE
   ; fill bitmap memory
   lda #$00
   ldx #$00
@@ -506,6 +492,30 @@ setup_game_board SUBROUTINE
   rts
 
 .counter .byte #$00
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+switch_video_mode SUBROUTINE
+  lda #$3b ; multi color bitmap mode
+  ldx #$18
+  ldy #$18
+  sta $d011
+  stx $d016
+  sty $d018
+
+  lda $dd02
+  ora #$03
+  sta $dd02 ; set cia port to output (for controlling VIC)
+
+  lda $dd00
+  and #$fd
+  sta $dd00 ; bank vic to $8000-$bfff
+
+  ; screen ram at $8000, bitmap at $a000
+  lda #$08
+  sta $d018
+
+  rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
