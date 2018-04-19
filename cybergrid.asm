@@ -17,7 +17,9 @@ p1y: .byte #$00
 p2x: .byte #$00
 p2y: .byte #$00
 p1dir: .byte #$00
+p1prevdir: .byte #$00
 p2dir: .byte #$00
+p2prevdir: .byte #$00
 
 ; macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -372,8 +374,15 @@ game_round SUBROUTINE
   stx p2x
   sty p2y
 
+  ; init player directions
+  lda #$00
+  sta p1dir
+  sta p1prevdir
+  sta p2dir
+  sta p2prevdir
+
 .loop:
-  lda #$40
+  lda #$04
   sta frame_ctr
   jsr game_step ; sets a to 0 if nothing happened
 
@@ -387,6 +396,7 @@ game_round SUBROUTINE
 game_step SUBROUTINE
   ; advance player positions
   lda p1dir
+  sta p1prevdir
 
   cmp #$00 ; moving up
   beq .p1up
@@ -836,6 +846,54 @@ game_irq SUBROUTINE
   beq .no_dec
   dec frame_ctr
 .no_dec
+
+  ; read input player 1
+  ldx $dc00 ; todo change to dc01 when we're done..
+  ldy p1prevdir
+
+  txa
+  and #$01
+  cmp #$01
+  bne .p1up
+  txa
+  and #$02
+  cmp #$02
+  bne .p1down
+  txa
+  and #$04
+  cmp #$04
+  bne .p1left
+  txa
+  and #$08
+  cmp #$08
+  bne .p1right
+
+  jmp .p1input_out ; no direction pressed - keep current dir
+
+.p1up:
+  cpy #$02 ; p1prevdir is still in y
+  beq .p1input_out
+  lda #$00
+  sta p1dir
+  jmp .p1input_out
+.p1left:
+  cpy #$03
+  beq .p1input_out
+  lda #$01
+  sta p1dir
+  jmp .p1input_out
+.p1down:
+  cpy #$00
+  beq .p1input_out
+  lda #$02
+  sta p1dir
+  jmp .p1input_out
+.p1right:
+  cpy #$01
+  beq .p1input_out
+  lda #$03
+  sta p1dir
+.p1input_out:
 
   ; interrupt ack
   asl $d019
