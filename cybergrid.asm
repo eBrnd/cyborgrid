@@ -486,7 +486,7 @@ setup_game_board SUBROUTINE
   inx
   bne .fill_charmem
 
-  lda #$01
+  lda #$05
   ldx #$00
 .fill_colormem:
   sta $d800,x
@@ -499,36 +499,69 @@ setup_game_board SUBROUTINE
   ; todo can be removed later when we run it in context
   lda #$00
   sta $d021
-  lda #$05
   sta $d020
 
+  jsr draw_border
+
+  rts
+
+.counter .byte #$00
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+draw_border SUBROUTINE
   lda #$00
   sta .counter
+
 .loop:
+  ; vertical part
   ldy .counter
+  ldx #$00
+  lda #$03
+  sta $02
+  jsr put_pixel
+
+  ldy .counter
+  ldx #$9f
+  lda #$03
+  sta $02
+  jsr put_pixel
+
+  lda .counter
+  cmp #$a0
+  bcs .no_horz ; skip drawing of horizontal part if we're already past 160
+
+  ; horizontal part
+  ldy #$00
   ldx .counter
-  lda #$02
+  lda #$03
   sta $02
   jsr put_pixel
 
+  ldy #$01
+  ldx .counter
+  lda #$03
+  sta $02
+  jsr put_pixel
+
+  ldy #$c6
+  ldx .counter
+  lda #$03
+  sta $02
+
+  jsr put_pixel
+  ldy #$c7
+  ldx .counter
+  lda #$03
+  sta $02
+  jsr put_pixel
+
+.no_horz:
+
   inc .counter
   lda .counter
-  cmp #$a0
+  cmp #$c8
   bne .loop
-
-  lda #$00
-  sta .counter
-.loop2:
-  ldy .counter
-  ldx #$50
-  lda #$01
-  sta $02
-  jsr put_pixel
-
-  inc .counter
-  lda .counter
-  cmp #$a0
-  bne .loop2
 
   rts
 
