@@ -8,10 +8,16 @@
 
 ptr equ $fb ; use $fb and $fc as pointer
 
-; variables ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; global variables ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   org $0900
 
 line_offset: .byte $00
+p1x: .byte #$00 ; x position is doubled, because pixels are drawn two high
+p1y: .byte #$00
+p2x: .byte #$00
+p2y: .byte #$00
+p1dir: .byte #$00
+p2dir: .byte #$00
 
 ; macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -85,6 +91,8 @@ main SUBROUTINE
 
   jsr get_ready_screen
   jsr countdown
+
+  jsr game_round
 
   brk
 
@@ -350,6 +358,80 @@ setup_sprites SUBROUTINE
   sta $d028
   sta $d029
 
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+game_round SUBROUTINE
+  ; init player positions
+  ldx #$3c
+  ldy #$32
+  stx p1x
+  sty p1y
+  ldx #$64
+  stx p2x
+  sty p2y
+
+.loop:
+  lda #$40
+  sta frame_ctr
+  jsr game_step ; sets a to 0 if nothing happened
+
+  jsr wait_frame_ctr
+  beq .loop
+
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+game_step SUBROUTINE
+  ; advance player positions
+  lda p1dir
+
+  cmp #$00 ; moving up
+  beq .p1up
+  cmp #$01 ; moving left
+  beq .p1left
+  cmp #$02 ; moving down
+  beq .p1down
+  cmp #$03
+  beq .p1right
+
+  brk ; assert false
+
+.p1up:
+  dec p1y
+  jmp .p1move_out
+.p1left:
+  dec p1x
+  jmp .p1move_out
+.p1down:
+  inc p1y
+  jmp .p1move_out
+.p1right:
+  inc p1x
+  jmp .p1move_out
+.p1move_out:
+
+  ; draw players
+  ldx p1x
+  lda p1y
+  asl
+  tay
+  lda #$01
+  sta $02
+  jsr put_pixel
+
+  ldx p1x
+  lda p1y
+  asl
+  ora #$01
+  tay
+  lda #$01
+  sta $02
+  jsr put_pixel
+
+  lda #$00
   rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
