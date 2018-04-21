@@ -447,6 +447,16 @@ game_step SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 countdown SUBROUTINE
+  ; remove "press both fire buttons..." text, because it would change color when we set up the
+  ; color memory for gameplay
+  ldy #$19
+  lda #$20 ; space characater
+.delete_message_loop:
+  sta $0597,y
+  sta $05be,y ; draws too much, but since it's all filled with "nothing" anyway it doesn't matter
+  dey
+  bne .delete_message_loop
+
   ; enable "3" sprite
   lda #$04
   sta $d015
