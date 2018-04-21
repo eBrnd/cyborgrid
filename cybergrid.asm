@@ -215,6 +215,20 @@ p2prevdir: .byte #$00
   jsr put_pixel
   ENDM
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  MAC write_string ; string length, str addr, scr addr, color
+  ldy #{1}
+.loop:
+  dey
+  lda {2},y
+  sta {3},y
+  lda #{4}
+  sta $d400+{3},y
+  tya
+  bne .loop
+  ENDM
+
 ; program ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   org $1000
 
@@ -407,15 +421,7 @@ get_ready_screen SUBROUTINE
   stx $d016
   sty $d018
 
-  ldy #$09
-.message1_loop:
-  dey
-  lda .get_ready_msg1,y
-  sta $04d7,y
-  lda #$05
-  sta $d8d7,y
-  tya
-  bne .message1_loop
+  write_string $09, get_ready_msg1, $04d7, $05
 
   jsr show_press_fire_message
 
@@ -423,34 +429,18 @@ get_ready_screen SUBROUTINE
 
   rts
 
-.get_ready_msg1: .byte "GET READY"
+get_ready_msg1: .byte "GET READY"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 show_press_fire_message SUBROUTINE
-  ldy #$17
-.message1_loop:
-  dey
-  lda .press_fire_msg1,y
-  sta $0598,y
-  lda #$04
-  sta $d998,y
-  tya
-  bne .message1_loop
+  write_string $16, press_fire_msg1, $0598, $04
+  write_string $19, press_fire_msg2, $05bf, $04
 
-  ldy #$19
-.message2_loop:
-  dey
-  lda .press_fire_msg2,y
-  sta $05bf,y
-  lda #$04
-  sta $d9bf,y
-  tya
-  bne .message2_loop
   rts
 
-.press_fire_msg1: .byte 80,18,5,19,19,32,2,15,20,8,32,6,9,18,5,32,2,21,20,20,15,14,19
-.press_fire_msg2: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,20,1,18,20
+press_fire_msg1: .byte 80,18,5,19,19,32,2,15,20,8,32,6,9,18,5,32,2,21,20,20,15,14,19
+press_fire_msg2: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,20,1,18,20
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -561,7 +551,7 @@ score_screen SUBROUTINE
 .draw:
   lda #$00 ; just set it to 0 if there's a draw.
 .store_score:
-  sta .scoring_msg+7
+  sta scoring_msg+7
 
   jsr $e544 ; clear screen
 
@@ -576,31 +566,16 @@ score_screen SUBROUTINE
   stx $d016
   sty $d018
 
-  lda .scoring_msg+7
+  lda scoring_msg+7
   cmp #$00
   beq .print_draw_msg
 
-  ldy #$0f
-.scoring_msg_loop:
-  dey
-  lda .scoring_msg,y
-  sta $0400,y
-  lda #$05
-  sta $d800,y
-  tya
-  bne .scoring_msg_loop
+  write_string $0f, scoring_msg, $0400, $05
+
   jmp .scoring_msg_out
 
 .print_draw_msg:
-  ldy #$04
-.draw_loop:
-  dey
-  lda .draw_msg,y
-  sta $0400,y
-  lda #$05
-  sta $d800,y
-  tya
-  bne .draw_loop
+  write_string $04, draw_msg, $0400, $05
 
 .scoring_msg_out:
 
@@ -609,8 +584,8 @@ score_screen SUBROUTINE
 
   rts
 
-.scoring_msg: .byte 80,12,1,25,5,18,32,32,32,19,3,15,18,5,19
-.draw_msg: .byte 68,18,1,23
+scoring_msg: .byte 80,12,1,25,5,18,32,32,32,19,3,15,18,5,19
+draw_msg: .byte 68,18,1,23
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
