@@ -131,6 +131,38 @@ p2prevdir: .byte #$00
 .out:
   ENDM
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  MAC move_player ; player number
+  lda p{1}dir
+  sta p{1}prevdir
+
+  cmp #$00 ; moving up
+  beq .up
+  cmp #$01 ; moving left
+  beq .left
+  cmp #$02 ; moving down
+  beq .down
+  cmp #$03
+  beq .right
+
+  brk ; assert false
+
+.up:
+  dec p{1}y
+  jmp .move_out
+.left:
+  dec p{1}x
+  jmp .move_out
+.down:
+  inc p{1}y
+  jmp .move_out
+.right:
+  inc p{1}x
+  jmp .move_out
+.move_out:
+  ENDM
+
 ; program ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   org $1000
 
@@ -449,34 +481,7 @@ game_round SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 game_step SUBROUTINE
-  ; advance player positions
-  lda p1dir
-  sta p1prevdir
-
-  cmp #$00 ; moving up
-  beq .p1up
-  cmp #$01 ; moving left
-  beq .p1left
-  cmp #$02 ; moving down
-  beq .p1down
-  cmp #$03
-  beq .p1right
-
-  brk ; assert false
-
-.p1up:
-  dec p1y
-  jmp .p1move_out
-.p1left:
-  dec p1x
-  jmp .p1move_out
-.p1down:
-  inc p1y
-  jmp .p1move_out
-.p1right:
-  inc p1x
-  jmp .p1move_out
-.p1move_out:
+  move_player 1
 
   ; draw players
   ldx p1x
