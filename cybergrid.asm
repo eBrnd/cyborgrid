@@ -166,11 +166,17 @@ p2prevdir: .byte #$00
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   MAC draw_player ; player number
+  IF {1} == 1
+.color EQU $01
+  ELSE
+.color EQU $02
+  EIF
+
   ldx p{1}x
   lda p{1}y
   asl
   tay
-  lda #$01
+  lda #.color
   sta $02
   jsr put_pixel
 
@@ -179,7 +185,7 @@ p2prevdir: .byte #$00
   asl
   ora #$01
   tay
-  lda #$01
+  lda #.color
   sta $02
   jsr put_pixel
   ENDM
