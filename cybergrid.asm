@@ -78,6 +78,29 @@ p2prevdir: .byte #$00
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  MAC shift_color_value ; address
+  ; shifts the color value at address so that it points to the pixel (sub-byte) indicated by the
+  ; three least significant bits of x
+  txa
+  and #$03
+
+  cmp #$03
+  beq .shift_out
+  asl {1}
+  asl {1}
+  cmp #$02
+  beq .shift_out
+  asl {1}
+  asl {1}
+  cmp #$01
+  beq .shift_out
+  asl {1}
+  asl {1}
+.shift_out:
+  ENDM
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
   MAC read_input ; player number
   IF {1} == 1
   ldx $dc00
@@ -166,6 +189,8 @@ p2prevdir: .byte #$00
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   MAC draw_player ; player number
+  ; leaves a in whatever state the second put_pixel call has left it
+  ; -> we can use it for collision detection
   IF {1} == 1
 .color EQU $01
   ELSE
@@ -499,6 +524,10 @@ game_round SUBROUTINE
   lda #$04
   sta frame_ctr
   jsr game_step ; sets a to 0 if nothing happened
+  cmp #$00
+  beq .step_okay
+  rts
+.step_okay:
 
   jsr wait_frame_ctr
   beq .loop
@@ -511,9 +540,17 @@ game_step SUBROUTINE
   move_player 1
   move_player 2
   draw_player 1
-  draw_player 2
+  cmp #$00
+  beq .no_collision_1
+  rts
+.no_collision_1:
 
-  lda #$00
+  draw_player 2
+  cmp #$00
+  beq .no_collision_2
+  rts
+.no_collision_2:
+
   rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -754,9 +791,15 @@ draw_border SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02 (last two bits)
+                     ; will set a to #$00 if drawing succeded
+                     ; a!=#$00 if drawing was attempted over already occupied pixel
   ; reset pointer
   lda #$a0
   sta ptr+1
+
+  ; reset pixel mask
+  lda #$03
+  sta pixel_mask
 
   ; store last three bits of y in ptr. We do it this early because in the next step we will divide
   ; y by 8, losing those three bits.
@@ -766,22 +809,8 @@ put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02
 
   ; move color bits into right position
   ; also done this early because leftmost bits of x will be deleted
-  txa
-  and #$03
-
-  cmp #$03
-  beq .shift_out
-  asl $02
-  asl $02
-  cmp #$02
-  beq .shift_out
-  asl $02
-  asl $02
-  cmp #$01
-  beq .shift_out
-  asl $02
-  asl $02
-.shift_out:
+  shift_color_value pixel_mask
+  shift_color_value $02
 
   ; first, we need to calculate row and line by character
   ; divide x coordiante by 4
@@ -855,14 +884,22 @@ put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02
 
   ldy #$00
   lda (ptr),y
+  and pixel_mask
+  beq .draw_okay
+  rts ; return, leaving a!=0
+.draw_okay:
+
+  lda (ptr),y
   ora $02
   sta (ptr),y
 
+  lda #$00 ; reset a to 0 to indicate drawing went ok
   rts
 
 .row .byte #$00
 .col .byte #$00
 .char_pos .byte #$00, #$00
+pixel_mask .byte #$00 ; global because it has to be used from a macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
