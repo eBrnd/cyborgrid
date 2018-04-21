@@ -769,8 +769,8 @@ draw_border SUBROUTINE
   ldx .counter
   lda #$03
   sta $02
-
   jsr put_pixel
+
   ldy #$c7
   ldx .counter
   lda #$03
