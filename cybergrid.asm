@@ -234,6 +234,7 @@ main SUBROUTINE
   jsr countdown
 
   jsr game_round
+  jsr score_screen
 
   brk
 
@@ -416,33 +417,40 @@ get_ready_screen SUBROUTINE
   tya
   bne .message1_loop
 
-  ldy #$17
-.message2_loop:
-  dey
-  lda .get_ready_msg2,y
-  sta $0598,y
-  lda #$04
-  sta $d998,y
-  tya
-  bne .message2_loop
-
-  ldy #$19
-.message3_loop:
-  dey
-  lda .get_ready_msg3,y
-  sta $05bf,y
-  lda #$04
-  sta $d9bf,y
-  tya
-  bne .message3_loop
+  jsr show_press_fire_message
 
   jsr wait_for_both_fire_buttons
 
   rts
 
 .get_ready_msg1: .byte "GET READY"
-.get_ready_msg2: .byte 80,18,5,19,19,32,2,15,20,8,32,6,9,18,5,32,2,21,20,20,15,14,19
-.get_ready_msg3: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,20,1,18,20
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+show_press_fire_message SUBROUTINE
+  ldy #$17
+.message1_loop:
+  dey
+  lda .press_fire_msg1,y
+  sta $0598,y
+  lda #$04
+  sta $d998,y
+  tya
+  bne .message1_loop
+
+  ldy #$19
+.message2_loop:
+  dey
+  lda .press_fire_msg2,y
+  sta $05bf,y
+  lda #$04
+  sta $d9bf,y
+  tya
+  bne .message2_loop
+  rts
+
+.press_fire_msg1: .byte 80,18,5,19,19,32,2,15,20,8,32,6,9,18,5,32,2,21,20,20,15,14,19
+.press_fire_msg2: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,20,1,18,20
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -525,33 +533,114 @@ game_round SUBROUTINE
   sta frame_ctr
   jsr game_step ; sets a to 0 if nothing happened
   cmp #$00
-  beq .step_okay
-  rts
-.step_okay:
-
+  bne .crashed
   jsr wait_frame_ctr
-  beq .loop
+  jmp .loop
 
+.crashed:
   rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+score_screen SUBROUTINE
+  cmp #$01
+  beq .p2scores
+  cmp #$02
+  beq .p1scores
+  cmp #$03
+  beq .draw
+
+  brk ; assert false
+
+.p1scores:
+  lda #$31 ; character 1
+  jmp .store_score
+.p2scores:
+  lda #$32 ; character 2
+  jmp .store_score
+.draw:
+  lda #$00 ; just set it to 0 if there's a draw.
+.store_score:
+  sta .scoring_msg+7
+
+  jsr $e544 ; clear screen
+
+  lda $dd00
+  ora $03
+  sta $dd00 ; bank vic back to original range
+
+  lda #$1b ; single color text mode
+  ldx #$08
+  ldy #$17 ; lowercase
+  sta $d011
+  stx $d016
+  sty $d018
+
+  lda .scoring_msg+7
+  cmp #$00
+  beq .print_draw_msg
+
+  ldy #$0f
+.scoring_msg_loop:
+  dey
+  lda .scoring_msg,y
+  sta $0400,y
+  lda #$05
+  sta $d800,y
+  tya
+  bne .scoring_msg_loop
+  jmp .scoring_msg_out
+
+.print_draw_msg:
+  ldy #$04
+.draw_loop:
+  dey
+  lda .draw_msg,y
+  sta $0400,y
+  lda #$05
+  sta $d800,y
+  tya
+  bne .draw_loop
+
+.scoring_msg_out:
+
+  jsr show_press_fire_message
+  jsr wait_for_both_fire_buttons
+
+  rts
+
+.scoring_msg: .byte 80,12,1,25,5,18,32,32,32,19,3,15,18,5,19
+.draw_msg: .byte 68,18,1,23
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 game_step SUBROUTINE
+  ; sets lsb of a if player 1 crashed, bit 1 if player 2 crashed
+  ; consequently, both bits are set if both players collided
+  lda #$00
+  sta .collision
+
   move_player 1
   move_player 2
   draw_player 1
   cmp #$00
   beq .no_collision_1
-  rts
+  lda #$01
+  sta .collision
 .no_collision_1:
 
   draw_player 2
   cmp #$00
   beq .no_collision_2
-  rts
+  lda #$02
+  ora .collision
+  sta .collision
 .no_collision_2:
 
+  lda .collision
   rts
+
+.collision .byte #$00
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
