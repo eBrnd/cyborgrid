@@ -509,7 +509,9 @@ game_round SUBROUTINE
 
 game_step SUBROUTINE
   move_player 1
+  move_player 2
   draw_player 1
+  draw_player 2
 
   lda #$00
   rts
@@ -928,6 +930,7 @@ game_irq SUBROUTINE
 .no_dec:
 
   read_input 1
+  read_input 2
 
   ; interrupt ack
   asl $d019
