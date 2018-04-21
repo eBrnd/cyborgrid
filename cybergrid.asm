@@ -76,6 +76,61 @@ p2prevdir: .byte #$00
   jmp $ea81 ; restore stack
   ENDM
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  MAC read_input ; player number
+  IF {1} == 1
+  ldx $dc00
+  ELSE
+  ldx $dc01
+  EIF
+  ldy p{1}prevdir
+
+  txa
+  and #$01
+  cmp #$01
+  bne .up
+  txa
+  and #$02
+  cmp #$02
+  bne .down
+  txa
+  and #$04
+  cmp #$04
+  bne .left
+  txa
+  and #$08
+  cmp #$08
+  bne .right
+
+  jmp .out ; no direction pressed - keep current dir
+
+.up:
+  cpy #$02 ; prevdir is still in y
+  beq .out
+  lda #$00
+  sta p{1}dir
+  jmp .out
+.left:
+  cpy #$03
+  beq .out
+  lda #$01
+  sta p{1}dir
+  jmp .out
+.down:
+  cpy #$00
+  beq .out
+  lda #$02
+  sta p{1}dir
+  jmp .out
+.right:
+  cpy #$01
+  beq .out
+  lda #$03
+  sta p{1}dir
+.out:
+  ENDM
+
 ; program ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   org $1000
 
@@ -855,55 +910,9 @@ game_irq SUBROUTINE
   lda frame_ctr
   beq .no_dec
   dec frame_ctr
-.no_dec
+.no_dec:
 
-  ; read input player 1
-  ldx $dc00 ; todo change to dc01 when we're done..
-  ldy p1prevdir
-
-  txa
-  and #$01
-  cmp #$01
-  bne .p1up
-  txa
-  and #$02
-  cmp #$02
-  bne .p1down
-  txa
-  and #$04
-  cmp #$04
-  bne .p1left
-  txa
-  and #$08
-  cmp #$08
-  bne .p1right
-
-  jmp .p1input_out ; no direction pressed - keep current dir
-
-.p1up:
-  cpy #$02 ; p1prevdir is still in y
-  beq .p1input_out
-  lda #$00
-  sta p1dir
-  jmp .p1input_out
-.p1left:
-  cpy #$03
-  beq .p1input_out
-  lda #$01
-  sta p1dir
-  jmp .p1input_out
-.p1down:
-  cpy #$00
-  beq .p1input_out
-  lda #$02
-  sta p1dir
-  jmp .p1input_out
-.p1right:
-  cpy #$01
-  beq .p1input_out
-  lda #$03
-  sta p1dir
-.p1input_out:
+  read_input 1
 
   ; interrupt ack
   asl $d019
