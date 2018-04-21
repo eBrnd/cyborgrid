@@ -163,6 +163,27 @@ p2prevdir: .byte #$00
 .move_out:
   ENDM
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  MAC draw_player ; player number
+  ldx p{1}x
+  lda p{1}y
+  asl
+  tay
+  lda #$01
+  sta $02
+  jsr put_pixel
+
+  ldx p{1}x
+  lda p{1}y
+  asl
+  ora #$01
+  tay
+  lda #$01
+  sta $02
+  jsr put_pixel
+  ENDM
+
 ; program ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   org $1000
 
@@ -482,24 +503,7 @@ game_round SUBROUTINE
 
 game_step SUBROUTINE
   move_player 1
-
-  ; draw players
-  ldx p1x
-  lda p1y
-  asl
-  tay
-  lda #$01
-  sta $02
-  jsr put_pixel
-
-  ldx p1x
-  lda p1y
-  asl
-  ora #$01
-  tay
-  lda #$01
-  sta $02
-  jsr put_pixel
+  draw_player 1
 
   lda #$00
   rts
