@@ -619,7 +619,8 @@ score_screen SUBROUTINE ; sets a to 1 if "game over", 0 for "play another round"
   lda #$32
   sta winning_msg+7
 
-  write_string $0d, winning_msg, $04d5, $04
+  write_string $0a, game_over_msg, $04d7, $05
+  write_string $0d, winning_msg, $0525, $04
 
   jsr wait_for_any_fire_button
   lda #$01 ; restart from title screen
@@ -650,6 +651,7 @@ draw_msg: .byte 68,18,1,23
 press_fire_msg3: .byte 20,15,32,19,20,1,18,20,32,14,5,24,20,32,18,15,21,14,4
 scores_msg: .byte "SCORES"
 winning_msg: .byte "PLAYER   WINS"
+game_over_msg: .byte 71,1,13,5,32,15,22,5,18,46
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
