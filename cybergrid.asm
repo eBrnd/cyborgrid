@@ -11,17 +11,32 @@ ptr equ $fb ; use $fb and $fc as pointer
 ; global variables ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   org $0900
 
+; title screen
 line_offset: .byte $00
+
+; drawing
 p1x: .byte #$00 ; x position is doubled, because pixels are drawn two high
 p1y: .byte #$00
 p2x: .byte #$00
 p2y: .byte #$00
+
+; movement
 p1dir: .byte #$00
 p1prevdir: .byte #$00
 p2dir: .byte #$00
 p2prevdir: .byte #$00
+
+; scoring
 p1score: .byte #$00
 p2score: .byte #$00
+
+; game sound
+game_sound_playing: .byte #$00
+p1note: .byte $00,$00
+p2note: .byte $00,$00
+p1vibrato: .byte $00
+p2vibrato: .byte $40
+vibrato_phase: .byte $00 ; bit 0: 0-p1up, 1-p1down, bit 1: same for p2
 
 ; macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -231,6 +246,71 @@ p2score: .byte #$00
   bne .loop
   ENDM
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  MAC slide_note ; player number
+  lda p{1}note+1
+  cmp #p{1}targetnote
+  beq .note_out
+  bpl .down
+
+  ; slide up
+  lda p{1}note
+  clc
+  adc #$20
+  sta p{1}note
+  lda p{1}note+1
+  adc #$00
+  sta p{1}note+1
+  jmp .note_out
+
+.down:
+  lda p{1}note
+  sec
+  sbc #$20
+  sta p{1}note
+  lda p{1}note+1
+  sbc #$00
+  sta p{1}note+1
+
+.note_out:
+  ENDM
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  MAC vibrato ; player number
+  ; add vibrato
+  lda vibrato_phase
+  and #${1}
+  beq .up
+
+  dec p{1}vibrato
+  dec p{1}vibrato
+  dec p{1}vibrato
+  bne .out
+  lda #$ff-{1}
+  and vibrato_phase
+  sta vibrato_phase
+  jmp .out
+.up:
+  inc p{1}vibrato
+  inc p{1}vibrato
+  inc p{1}vibrato
+  lda p{1}vibrato
+
+  IF {1} == 1
+  cmp #$80 ; vibrato upper frequency
+  ELSE
+  cmp #$70
+  EIF
+
+  bmi .out
+  lda #$0{1}
+  ora vibrato_phase
+  sta vibrato_phase
+.out:
+  ENDM
+
 ; program ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   org $1000
 
@@ -243,7 +323,6 @@ main SUBROUTINE
   jsr wait_for_any_fire_button
 
   jsr stop_music
-  jsr setup_game_sound
   jsr setup_sprites
   jsr setup_game_irq
 
@@ -251,6 +330,7 @@ main SUBROUTINE
   jsr get_ready_screen
 
 .play:
+  jsr setup_beeps
   jsr countdown
   jsr game_round
   jsr score_screen
@@ -465,7 +545,7 @@ stop_music SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-setup_game_sound SUBROUTINE
+setup_beeps SUBROUTINE
   ; initialize sid for beeps
   lda #$12 ; frequency high byte
   sta $d401
@@ -526,6 +606,8 @@ game_round SUBROUTINE
   sta p2dir
   sta p2prevdir
 
+  jsr start_game_sound
+
 .loop:
   lda #$04
   sta frame_ctr
@@ -536,7 +618,8 @@ game_round SUBROUTINE
   jmp .loop
 
 .crashed:
-  rts
+  jsr stop_game_sound
+  rts ; whatever a is set to by the last call to game_step, must still be in a at this point
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -744,12 +827,6 @@ countdown SUBROUTINE
   sta $d400
   ldx #$1e ; beep longer
   jsr beep
-  ; reset freq. register
-  lda #$12 ; frequency high byte
-  sta $d401
-  lda #$2a ; frequency low byte
-  sta $d400
-
   rts
 
 .countdown_delay set $22
@@ -1102,12 +1179,91 @@ game_irq SUBROUTINE
   read_input 1
   read_input 2
 
+  lda game_sound_playing
+  beq .no_game_sound
+  jsr play_game_sound
+.no_game_sound:
+
   ; interrupt ack
   asl $d019
   jmp $ea81
 
 frame_ctr .byte $00 ; gets decreased every frame if not yet 0, for timing etc.
                     ; other routines might set it to different values and check for =0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+play_game_sound SUBROUTINE
+  slide_note 1
+  slide_note 2
+
+  vibrato 1
+  vibrato 2
+
+  ; write frequency to SID
+  lda p1note
+  clc
+  adc p1vibrato
+  sta $d400
+  lda p1note+1
+  adc #$00
+  sta $d401
+
+  lda p2note
+  clc
+  adc p2vibrato
+  sta $d407
+  lda p2note+1
+  adc #$00
+  sta $d408
+
+  rts
+
+p1targetnote equ $0d
+p2targetnote equ $0d
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+start_game_sound SUBROUTINE
+  lda #$00
+
+  sta $d401 ; voice 1 freq
+  sta $d400
+  sta $d407 ; voice 2 freq
+  sta $d408
+
+  sta $d405 ; v1 AD
+  sta $d40c ; v2 AD
+
+  lda $f0
+  sta $d406 ; v1 SR
+  sta $d40d ; v2 SR
+
+  lda #$11
+  sta $d404 ; v1 control
+  sta $d40b ; v2 control
+
+  lda #$01
+  sta game_sound_playing
+
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+stop_game_sound SUBROUTINE
+  ; this must not touch the accumulator, because that still holds the return code of game_step,
+  ; which is needed for score_screen
+  ldx #$00
+  stx game_sound_playing
+  stx p1note
+  stx p1note+1
+  stx p2note
+  stx p2note+1
+
+  ldx #$10
+  stx $d404
+  stx $d40b
+  rts
 
 ; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
