@@ -25,6 +25,8 @@ p1dir: .byte #$00
 p1prevdir: .byte #$00
 p2dir: .byte #$00
 p2prevdir: .byte #$00
+p1boost: .byte #$00
+p2boost: .byte #$00
 
 ; scoring
 p1score: .byte #$00
@@ -606,6 +608,10 @@ game_round SUBROUTINE
   sta p2dir
   sta p2prevdir
 
+  ; reset boost
+  sta p1boost
+  sta p2boost
+
   jsr start_game_sound
 
 .loop:
@@ -739,6 +745,30 @@ game_over_msg: .byte 71,1,13,5,32,15,22,5,18,46
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 game_step SUBROUTINE
+  lda .boost_ctr
+  beq .increase_boost
+
+  dec .boost_ctr
+  jmp .boost_out
+
+.increase_boost: ; TODO only do this when player is not boosting!
+  lda p1boost
+  cmp #max_boost
+  beq .p1_noinc
+  inc p1boost
+.p1_noinc:
+  lda p2boost
+  cmp #max_boost
+  beq .p2_noinc
+  inc p2boost
+.p2_noinc:
+  lda #$0e
+  sta .boost_ctr
+
+.boost_out:
+
+  jsr draw_boost_gauge
+
   ; sets lsb of a if player 1 crashed, bit 1 if player 2 crashed
   ; consequently, both bits are set if both players collided
   lda #$00
@@ -765,6 +795,65 @@ game_step SUBROUTINE
   rts
 
 .collision .byte #$00
+.boost_ctr .byte #$00
+max_boost equ $30
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+draw_boost_gauge SUBROUTINE
+  lda #max_boost
+  sta .counter
+  lda #159-max_boost
+  sta .p2counter
+
+.loop:
+  ldy #$00
+  ldx .counter
+
+  lda #$01
+  cpx p1boost
+  bmi .p1fill
+  lda #$00
+.p1fill:
+  sta $02
+  sta .tmp
+  jsr put_pixel
+
+  ldy #$01
+  ldx .counter
+  lda .tmp
+  sta $02
+  jsr put_pixel
+
+  lda #$02
+  ldx .counter
+  cpx p2boost
+  bmi .p2fill
+  lda #$00
+.p2fill:
+  sta $02
+  sta .tmp
+
+  ldx .p2counter
+  ldy #$00
+  jsr put_pixel
+
+  ldx .p2counter
+  ldy #$01
+  lda .tmp
+  sta $02
+  jsr put_pixel
+
+
+  inc .p2counter
+  dec .counter
+  bne .loop
+
+  rts
+
+.counter .byte #$00
+.p2counter .byte #$00 ; counts the other way, for p2's boost gauge
+.tmp .byte #$00 ; for storing color value in between successive calls to put_pixel
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -963,13 +1052,13 @@ draw_border SUBROUTINE
   bcs .no_horz ; skip drawing of horizontal part if we're already past 160
 
   ; horizontal part
-  ldy #$00
+  ldy #$04
   ldx .counter
   lda #$03
   sta $02
   jsr put_pixel
 
-  ldy #$01
+  ldy #$05
   ldx .counter
   lda #$03
   sta $02
