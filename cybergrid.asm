@@ -594,28 +594,28 @@ score_screen SUBROUTINE
 
   ; just re-use "Player" prefix from scoring_msg - we print some more characters than needed,
   ; so the background color is set for the whole "score board"
-  write_string $0b, scoring_msg, $068f, $04
-  write_string $0b, scoring_msg, $06b7, $04
+  write_string $0b, scoring_msg, $068e, $04
+  write_string $0b, scoring_msg, $06b6, $04
 
   ldx #$31 ; write numbers "1" and "2" after "Player"
   ldy #$32
   lda #$3a ; ":"
-  stx $0696
-  sty $06be
+  stx $0695
+  sty $06bd
+  sta $0696
+  sta $06be
+  lda #$20 ; clear the superfluosly printed "s"
   sta $0697
   sta $06bf
-  lda #$20 ; clear the superfluosly printed "s"
-  sta $0698
-  sta $06c0
 
   lda p1score
   clc
   adc #$30
-  sta $0699
+  sta $0698
   lda p2score
   clc
   adc #$30
-  sta $06c1
+  sta $06c0
 
   jsr wait_for_both_fire_buttons
 
@@ -659,13 +659,16 @@ game_step SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 countdown SUBROUTINE
-  ; remove "press both fire buttons..." text, because it would change color when we set up the
-  ; color memory for gameplay
+  ; remove "press both fire buttons..." and other text, because it would change color when we set up
+  ; the color memory for gameplay
   ldy #$19
   lda #$20 ; space characater
 .delete_message_loop:
   sta $0597,y
   sta $05be,y ; draws too much, but since it's all filled with "nothing" anyway it doesn't matter
+  sta $0640,y
+  sta $068d,y
+  sta $06b5,y
   dey
   bne .delete_message_loop
 
