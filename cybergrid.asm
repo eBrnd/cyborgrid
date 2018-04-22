@@ -423,22 +423,14 @@ get_ready_screen SUBROUTINE
 
   write_string $09, get_ready_msg1, $04d7, $05
 
-  jsr show_press_fire_message
+  write_string $17, press_fire_msg1, $0598, $04
+  write_string $19, press_fire_msg2, $05bf, $04
 
   jsr wait_for_both_fire_buttons
 
   rts
 
 get_ready_msg1: .byte "GET READY"
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-show_press_fire_message SUBROUTINE
-  write_string $16, press_fire_msg1, $0598, $04
-  write_string $19, press_fire_msg2, $05bf, $04
-
-  rts
-
 press_fire_msg1: .byte 80,18,5,19,19,32,2,15,20,8,32,6,9,18,5,32,2,21,20,20,15,14,19
 press_fire_msg2: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,20,1,18,20
 
@@ -570,22 +562,25 @@ score_screen SUBROUTINE
   cmp #$00
   beq .print_draw_msg
 
-  write_string $0f, scoring_msg, $0400, $05
+  write_string $0f, scoring_msg, $04d4, $05
 
   jmp .scoring_msg_out
 
 .print_draw_msg:
-  write_string $04, draw_msg, $0400, $05
+  write_string $04, draw_msg, $04da, $05
 
 .scoring_msg_out:
 
-  jsr show_press_fire_message
+  write_string $17, press_fire_msg1, $0598, $04
+  write_string $13, press_fire_msg3, $05c2, $04
+
   jsr wait_for_both_fire_buttons
 
   rts
 
 scoring_msg: .byte 80,12,1,25,5,18,32,32,32,19,3,15,18,5,19
 draw_msg: .byte 68,18,1,23
+press_fire_msg3: .byte 20,15,32,19,20,1,18,20,32,14,5,24,20,32,18,15,21,14,4
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
