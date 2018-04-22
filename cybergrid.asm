@@ -235,6 +235,7 @@ p2score: .byte #$00
   org $1000
 
 main SUBROUTINE
+.start:
   jsr init_music
   jsr setup_titlescreen_raster_interrupt
   jsr display_title
@@ -253,9 +254,11 @@ main SUBROUTINE
   jsr countdown
   jsr game_round
   jsr score_screen
-  jmp .play
 
-  brk
+  cmp #$00
+  beq .play
+
+  jmp .start
 
 ; irq handler ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -537,7 +540,7 @@ game_round SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-score_screen SUBROUTINE
+score_screen SUBROUTINE ; sets a to 1 if "game over", 0 for "play another round"
   cmp #$01
   beq .p2scores
   cmp #$02
@@ -573,22 +576,6 @@ score_screen SUBROUTINE
   stx $d016
   sty $d018
 
-  lda scoring_msg+7
-  cmp #$00
-  beq .print_draw_msg
-
-  write_string $0f, scoring_msg, $04d4, $05
-
-  jmp .scoring_msg_out
-
-.print_draw_msg:
-  write_string $04, draw_msg, $04da, $05
-
-.scoring_msg_out:
-
-  write_string $17, press_fire_msg1, $0598, $04
-  write_string $13, press_fire_msg3, $05c2, $04
-
   ; display player scores
   write_string $06, scores_msg, $0641, $05
 
@@ -617,14 +604,52 @@ score_screen SUBROUTINE
   adc #$30
   sta $06c0
 
-  jsr wait_for_both_fire_buttons
+  ; check if a player reached 5 points
+  ldx p1score
+  ldy p2score
+  cpx #$05
+  beq .p1wins
+  cpy #$05
+  beq .p2wins
+  jmp .no_winner_yet
 
+.p1wins:
+  lda #$31
+.p2wins:
+  lda #$32
+  sta winning_msg+7
+
+  write_string $0d, winning_msg, $04d5, $04
+
+  jsr wait_for_any_fire_button
+  lda #$01 ; restart from title screen
+  rts
+
+.no_winner_yet:
+  write_string $17, press_fire_msg1, $0598, $04
+  write_string $13, press_fire_msg3, $05c2, $04
+
+  lda scoring_msg+7
+  cmp #$00
+  beq .print_draw_msg
+
+  write_string $0f, scoring_msg, $04d4, $05
+  jmp .scoring_msg_out
+
+.print_draw_msg:
+  write_string $04, draw_msg, $04da, $05
+
+.scoring_msg_out:
+
+  jsr wait_for_both_fire_buttons
+  lda #$00 ; play another round
   rts
 
 scoring_msg: .byte 80,12,1,25,5,18,32,32,32,19,3,15,18,5,19
 draw_msg: .byte 68,18,1,23
 press_fire_msg3: .byte 20,15,32,19,20,1,18,20,32,14,5,24,20,32,18,15,21,14,4
 scores_msg: .byte "SCORES"
+winning_msg: .byte "PLAYER   WINS"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
