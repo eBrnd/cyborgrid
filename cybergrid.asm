@@ -20,6 +20,8 @@ p1dir: .byte #$00
 p1prevdir: .byte #$00
 p2dir: .byte #$00
 p2prevdir: .byte #$00
+p1score: .byte #$00
+p2score: .byte #$00
 
 ; macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -244,11 +246,14 @@ main SUBROUTINE
   jsr setup_sprites
   jsr setup_game_irq
 
+  jsr reset_scores
   jsr get_ready_screen
-  jsr countdown
 
+.play:
+  jsr countdown
   jsr game_round
   jsr score_screen
+  jmp .play
 
   brk
 
@@ -436,6 +441,14 @@ press_fire_msg2: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,2
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+reset_scores SUBROUTINE
+  lda #$00
+  sta p1score
+  sta p2score
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 stop_music SUBROUTINE
   lda #$00
   ldx #$00
@@ -535,9 +548,11 @@ score_screen SUBROUTINE
   brk ; assert false
 
 .p1scores:
+  inc p1score
   lda #$31 ; character 1
   jmp .store_score
 .p2scores:
+  inc p2score
   lda #$32 ; character 2
   jmp .store_score
 .draw:
@@ -574,6 +589,34 @@ score_screen SUBROUTINE
   write_string $17, press_fire_msg1, $0598, $04
   write_string $13, press_fire_msg3, $05c2, $04
 
+  ; display player scores
+  write_string $06, scores_msg, $0641, $05
+
+  ; just re-use "Player" prefix from scoring_msg - we print some more characters than needed,
+  ; so the background color is set for the whole "score board"
+  write_string $0b, scoring_msg, $068f, $04
+  write_string $0b, scoring_msg, $06b7, $04
+
+  ldx #$31 ; write numbers "1" and "2" after "Player"
+  ldy #$32
+  lda #$3a ; ":"
+  stx $0696
+  sty $06be
+  sta $0697
+  sta $06bf
+  lda #$20 ; clear the superfluosly printed "s"
+  sta $0698
+  sta $06c0
+
+  lda p1score
+  clc
+  adc #$30
+  sta $0699
+  lda p2score
+  clc
+  adc #$30
+  sta $06c1
+
   jsr wait_for_both_fire_buttons
 
   rts
@@ -581,6 +624,7 @@ score_screen SUBROUTINE
 scoring_msg: .byte 80,12,1,25,5,18,32,32,32,19,3,15,18,5,19
 draw_msg: .byte 68,18,1,23
 press_fire_msg3: .byte 20,15,32,19,20,1,18,20,32,14,5,24,20,32,18,15,21,14,4
+scores_msg: .byte "SCORES"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
