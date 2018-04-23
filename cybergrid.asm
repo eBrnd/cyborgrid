@@ -25,11 +25,12 @@ p1dir: .byte #$00
 p1prevdir: .byte #$00
 p2dir: .byte #$00
 p2prevdir: .byte #$00
-p1boost: .byte #$00
+p1boost: .byte #$00 ; boost energy per player
 p2boost: .byte #$00
-p1boosting: .byte #$00
+p1boosting: .byte #$00 ; last bit is set if a player is pusing the boost button
 p2boosting: .byte #$00
-boost_ctr: .byte #$00
+boost_ctr: .byte #$00 ; counter for increasing the boost energy
+players_boosting: .byte #$00 ; players succeeding to boost (last two bits)
 
 ; scoring
 p1score: .byte #$00
@@ -42,6 +43,7 @@ p2note: .byte $00,$00
 p1vibrato: .byte $00
 p2vibrato: .byte $40
 vibrato_phase: .byte $00 ; bit 0: 0-p1up, 1-p1down, bit 1: same for p2
+targetnote: .byte #$00 ; temporary store for target note while playing player sounds
 
 ; macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -313,15 +315,34 @@ vibrato_phase: .byte $00 ; bit 0: 0-p1up, 1-p1down, bit 1: same for p2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   MAC slide_note ; player number
+  lda players_boosting
+  and #${1}
+  beq .noboost
+  lda #p1boostnote
+  sta targetnote
+  jmp .boost_out
+.noboost:
+  lda #p1targetnote
+  sta targetnote
+.boost_out:
+
   lda p{1}note+1
-  cmp #p{1}targetnote
+  cmp targetnote
+  beq .cmp_lowbyte
+  bpl .down
+  jmp .up
+
+.cmp_lowbyte
+  lda p{1}note
+  cmp #$80 ; slide amount must divide this without remainder so we can hit it here
   beq .note_out
   bpl .down
 
+.up:
   ; slide up
   lda p{1}note
   clc
-  adc #$20
+  adc #$40
   sta p{1}note
   lda p{1}note+1
   adc #$00
@@ -331,7 +352,7 @@ vibrato_phase: .byte $00 ; bit 0: 0-p1up, 1-p1down, bit 1: same for p2
 .down:
   lda p{1}note
   sec
-  sbc #$20
+  sbc #$40
   sta p{1}note
   lda p{1}note+1
   sbc #$00
@@ -819,7 +840,7 @@ game_step SUBROUTINE
   ldy #$00
   handle_boost 1
   handle_boost 2
-  sty .players_boosting
+  sty players_boosting
 
   ; decrease boost "timer" and reset it if it has reached zero
   ldx boost_ctr
@@ -855,7 +876,7 @@ game_step SUBROUTINE
 .no_collision_2:
 
   lda #$01
-  and .players_boosting
+  and players_boosting
   beq .p1noboost
 
   move_player 1
@@ -868,7 +889,7 @@ game_step SUBROUTINE
 .p1noboost:
 
   lda #$02
-  and .players_boosting
+  and players_boosting
   beq .p2noboost
 
   move_player 2
@@ -884,7 +905,6 @@ game_step SUBROUTINE
   rts
 
 .collision .byte #$00
-.players_boosting .byte #$00
 max_boost equ $30
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1427,6 +1447,8 @@ play_game_sound SUBROUTINE
 
 p1targetnote equ $0d
 p2targetnote equ $0d
+p1boostnote equ $12
+p2boostnote equ $12
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1452,6 +1474,12 @@ start_game_sound SUBROUTINE
   lda #$01
   sta game_sound_playing
 
+  ldx #$00
+  stx p1note+1
+  stx p2note+1
+  stx p1note
+  stx p2note
+
   rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1461,10 +1489,10 @@ stop_game_sound SUBROUTINE
   ; which is needed for score_screen
   ldx #$00
   stx game_sound_playing
-  stx p1note
   stx p1note+1
-  stx p2note
   stx p2note+1
+  stx p1note
+  stx p2note
 
   ldx #$10
   stx $d404
