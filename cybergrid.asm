@@ -27,6 +27,9 @@ p2dir: .byte #$00
 p2prevdir: .byte #$00
 p1boost: .byte #$00
 p2boost: .byte #$00
+p1boosting: .byte #$00
+p2boosting: .byte #$00
+boost_ctr: .byte #$00
 
 ; scoring
 p1score: .byte #$00
@@ -129,6 +132,18 @@ vibrato_phase: .byte $00 ; bit 0: 0-p1up, 1-p1down, bit 1: same for p2
   ldy p{1}prevdir
 
   txa
+  and #$10
+  cmp #$10
+  bne .boosting
+  lda #$00
+  sta p{1}boosting
+  jmp .boosting_out
+.boosting:
+  lda #$01
+  sta p{1}boosting
+.boosting_out:
+
+  txa
   and #$01
   cmp #$01
   bne .up
@@ -171,6 +186,53 @@ vibrato_phase: .byte $00 ; bit 0: 0-p1up, 1-p1down, bit 1: same for p2
   lda #$03
   sta p{1}dir
 .out:
+  ENDM
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  MAC handle_boost ; player number
+  ldx p{1}boost
+  lda p{1}boosting
+  beq .not_boosting
+
+  ; if less than 2 boost left, neither boost nor recharge
+  txa
+  lsr
+  beq .out
+
+  ; decrease boost by 2
+  dex
+  dex
+
+  ; activate boost
+  tya
+  IF {1} == 1
+  ora #$01
+  ELSE
+  ora #$02
+  EIF
+  tay
+
+  ; if after decreasing, only 1 boost is left, decrease to 0
+  cpx #$01
+  bne .out
+
+  ldx #$00
+
+  jmp .out
+
+.not_boosting:
+  lda boost_ctr
+  bne .out
+
+  ; increase boost if not yet maximum
+  cpx #max_boost
+  beq .out
+  inx
+  jmp .out
+
+.out:
+  stx p{1}boost
   ENDM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -753,27 +815,20 @@ game_over_msg: .byte 71,1,13,5,32,15,22,5,18,46
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 game_step SUBROUTINE
-  lda .boost_ctr
-  beq .increase_boost
+  ; use y register (last two bits) to see if a player is boosting
+  ldy #$00
+  handle_boost 1
+  handle_boost 2
+  sty .players_boosting
 
-  dec .boost_ctr
-  jmp .boost_out
-
-.increase_boost: ; TODO only do this when player is not boosting!
-  lda p1boost
-  cmp #max_boost
-  beq .p1_noinc
-  inc p1boost
-.p1_noinc:
-  lda p2boost
-  cmp #max_boost
-  beq .p2_noinc
-  inc p2boost
-.p2_noinc:
-  lda #$0e
-  sta .boost_ctr
-
-.boost_out:
+  ; decrease boost "timer" and reset it if it has reached zero
+  ldx boost_ctr
+  inx
+  cpx #$08
+  bne .noreset
+  ldx #$00
+.noreset:
+  stx boost_ctr
 
   jsr draw_boost_gauge
 
@@ -799,11 +854,37 @@ game_step SUBROUTINE
   sta .collision
 .no_collision_2:
 
+  lda #$01
+  and .players_boosting
+  beq .p1noboost
+
+  move_player 1
+  draw_player 1
+  cmp #$00
+  beq .p1noboost ; no collision
+  lda #$01
+  ora .collision
+  sta .collision
+.p1noboost:
+
+  lda #$02
+  and .players_boosting
+  beq .p2noboost
+
+  move_player 2
+  draw_player 2
+  cmp #$00
+  beq .p2noboost ; no collision
+  lda #$02
+  ora .collision
+  sta .collision
+.p2noboost:
+
   lda .collision
   rts
 
 .collision .byte #$00
-.boost_ctr .byte #$00
+.players_boosting .byte #$00
 max_boost equ $30
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -821,7 +902,7 @@ draw_boost_gauge SUBROUTINE
   lda #$01
   cpx p1boost
   bmi .p1fill
-  lda #$00
+  lda #$fe
 .p1fill:
   sta $02
   sta .tmp
@@ -837,7 +918,7 @@ draw_boost_gauge SUBROUTINE
   ldx .counter
   cpx p2boost
   bmi .p2fill
-  lda #$00
+  lda #$fd
 .p2fill:
   sta $02
   sta .tmp
@@ -1097,7 +1178,9 @@ draw_border SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02 (last two bits)
+put_pixel SUBROUTINE ; x, y: position on screen
+                     ; color argument in zero page $02 (last two bits)
+                     ; if MSB of $02 is set, color is cleared (instead of drawn over)
                      ; will set a to #$00 if drawing succeded
                      ; a!=#$00 if drawing was attempted over already occupied pixel
   ; reset pointer
@@ -1113,6 +1196,19 @@ put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02
   tya
   and #$07
   sta ptr ; lower byte of ptr is initialized here
+
+  ; check if we want to draw or clear
+  lda $02
+  and #$80
+  cmp #$80
+  beq .clear
+  lda #$00
+  sta .s_clear
+  jmp .clear_check_cont
+.clear:
+  lda #$01
+  sta .s_clear
+.clear_check_cont:
 
   ; move color bits into right position
   ; also done this early because leftmost bits of x will be deleted
@@ -1189,6 +1285,18 @@ put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02
   adc .char_pos+1
   sta ptr+1
 
+  lda .s_clear
+  beq .draw
+
+  ; clear
+  lda #$ff
+  eor pixel_mask
+  ldy #$00
+  and (ptr),y
+  sta (ptr),y
+  rts
+
+.draw:
   ldy #$00
   lda (ptr),y
   and pixel_mask
@@ -1203,10 +1311,11 @@ put_pixel SUBROUTINE ; x, y: position on screen, color argument in zero page $02
   lda #$00 ; reset a to 0 to indicate drawing went ok
   rts
 
-.row .byte #$00
-.col .byte #$00
-.char_pos .byte #$00, #$00
-pixel_mask .byte #$00 ; global because it has to be used from a macro
+.row: .byte #$00
+.col: .byte #$00
+.char_pos: .byte #$00, #$00
+.s_clear: .byte #$00
+pixel_mask: .byte #$00 ; global because it has to be used from a macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
