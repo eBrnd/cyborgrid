@@ -492,11 +492,19 @@ wait_for_any_fire_button SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 wait_for_both_fire_buttons SUBROUTINE
-.loop:
+  ; wait until buttons are released
+.rel_loop:
+  lda $dc01
+  and $dc00
+  and #$10
+  beq .rel_loop
+
+  ; wait until they are pressed
+.press_loop:
   lda $dc01
   ora $dc00
   and #$10
-  bne .loop
+  bne .press_loop
   rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
