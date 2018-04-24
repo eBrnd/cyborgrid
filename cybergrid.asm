@@ -1138,7 +1138,7 @@ switch_video_mode SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 draw_border_vert SUBROUTINE
-  lda #$00
+  lda #$04
   sta .counter
 
 .loop:
