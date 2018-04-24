@@ -403,7 +403,7 @@ main SUBROUTINE
   jsr wait_for_any_fire_button
 
   jsr stop_music
-  jsr setup_sprites
+  jsr prepare_countdown_sprites
   jsr setup_game_irq
 
   jsr reset_scores
@@ -651,7 +651,7 @@ setup_beeps SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-setup_sprites SUBROUTINE
+prepare_countdown_sprites SUBROUTINE
   ; sprites for countdown all have the same x and y coordinates and color
   lda #sprite_1/64
   sta $07f8
@@ -660,18 +660,26 @@ setup_sprites SUBROUTINE
   lda #sprite_3/64
   sta $07fa
 
-  lda #$ab ; x coord
-  sta $d000
-  sta $d002
-  sta $d004
-  lda #$67 ; y coord
-  sta $d001
-  sta $d003
-  sta $d005
-  lda #$05 ; color
-  sta $d027
-  sta $d028
-  sta $d029
+  rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+prepare_explosion_sprites SUBROUTINE
+  ; sprites for explosions
+  ; there's some space at 8400 where we can put our sprite(s)
+  ldx #$40
+.copy_explosion_sprite:
+  dex
+  lda sprite_expl,x
+  sta $8400,x
+  sta $8440,x
+  cpx #$00
+  bne .copy_explosion_sprite
+
+  lda #$10 ; sprite address / 64 (in vic's bank)
+  sta $83f8
+  lda #$11
+  sta $83f9
 
   rts
 
@@ -710,8 +718,80 @@ game_round SUBROUTINE
   jmp .loop
 
 .crashed:
+  sta .tmp ; save accumulator for next round
   jsr stop_game_sound
+  jsr do_explosion
+  lda .tmp
+
   rts ; whatever a is set to by the last call to game_step, must still be in a at this point
+
+.tmp: .byte #$00
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+do_explosion SUBROUTINE
+  lda #$0a
+  sta $d027
+  lda #$0e
+  sta $d028
+
+  lda #$03 ; set it for all sprites...
+  sta $d017 ; double height
+  sta $d01d ; double width
+
+  lda #$00
+  sta $d010 ; collects high bits of all the sprite x positions
+  ; player 1 position
+  lda p1x
+  sec
+  sbc #$01
+  cmp #$80
+  bmi .no_high_bit_1
+  tay
+  lda #$01
+  sta $d010
+  tya
+.no_high_bit_1:
+  asl
+  sta $d000
+  lda p1y
+  clc
+  adc #$10
+  asl
+  sta $d001
+
+  ; player 2 position
+  lda p2x
+  sec
+  sbc #$01
+  cmp #$80
+  bmi .no_high_bit_2
+  tay
+  lda #$02
+  ora $d010
+  sta $d010
+  tya
+.no_high_bit_2:
+  asl
+  sta $d002
+  lda p2y
+  clc
+  adc #$10
+  asl
+  sta $d003
+
+  lda #$03
+  sta $d015 ; sprite enable
+
+  ldx #$80
+  stx frame_ctr
+  jsr wait_frame_ctr
+
+  ; disable explosion sprites again
+  lda #$00
+  sta $d015
+
+  rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -975,6 +1055,26 @@ countdown SUBROUTINE
   dey
   bne .delete_message_loop
 
+  ; setup sprites
+  ; adresses are stored in screen ram and will not be changed by explosion routine,
+  ; because that uses another bank
+  lda #$ab ; x coord
+  sta $d000
+  sta $d002
+  sta $d004
+  lda #$67 ; y coord
+  sta $d001
+  sta $d003
+  sta $d005
+  lda #$05 ; color
+  sta $d027
+  sta $d028
+  sta $d029
+  lda #$00
+  sta $d010 ; 8th bits of all sprites
+  sta $d017 ; double height
+  sta $d01d ; double width
+
   ; enable "3" sprite
   lda #$04
   sta $d015
@@ -999,6 +1099,7 @@ countdown SUBROUTINE
   stx frame_ctr
 
   jsr draw_border_vert
+  jsr prepare_explosion_sprites ; has to be done this late cause clear_screen clobbers sprite ptrs
 
   jsr wait_frame_ctr
 
@@ -1488,8 +1589,6 @@ start_game_sound SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 stop_game_sound SUBROUTINE
-  ; this must not touch the accumulator, because that still holds the return code of game_step,
-  ; which is needed for score_screen
   ldx #$00
   stx game_sound_playing
   stx p1note+1
