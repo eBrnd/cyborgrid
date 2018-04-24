@@ -1002,6 +1002,9 @@ countdown SUBROUTINE
 
   ldx #.countdown_delay
   stx frame_ctr
+
+  jsr draw_border_vert
+
   jsr wait_frame_ctr
 
   lsr $d015 ; enable "1" sprite
@@ -1011,6 +1014,9 @@ countdown SUBROUTINE
 
   ldx #.countdown_delay
   stx frame_ctr
+
+  jsr draw_border_horz
+
   jsr wait_frame_ctr
 
   lda #$00
@@ -1101,13 +1107,6 @@ clear_screen SUBROUTINE
   inx
   bne .fill_colormem
 
-  ; todo can be removed later when we run it in context
-  lda #$00
-  sta $d021
-  sta $d020
-
-  jsr draw_border
-
   rts
 
 .counter .byte #$00
@@ -1138,12 +1137,11 @@ switch_video_mode SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-draw_border SUBROUTINE
+draw_border_vert SUBROUTINE
   lda #$00
   sta .counter
 
 .loop:
-  ; vertical part
   ldy .counter
   ldx #$00
   lda #$03
@@ -1156,11 +1154,22 @@ draw_border SUBROUTINE
   sta $02
   jsr put_pixel
 
+  inc .counter
   lda .counter
-  cmp #$a0
-  bcs .no_horz ; skip drawing of horizontal part if we're already past 160
+  cmp #$c8
+  bne .loop
 
-  ; horizontal part
+  rts
+
+.counter: .byte #$00
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+draw_border_horz SUBROUTINE
+  lda #$00
+  sta .counter
+
+.loop:
   ldy #$04
   ldx .counter
   lda #$03
@@ -1189,7 +1198,7 @@ draw_border SUBROUTINE
 
   inc .counter
   lda .counter
-  cmp #$c8
+  cmp #$a0
   bne .loop
 
   rts
