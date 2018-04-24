@@ -135,8 +135,7 @@ targetnote: .byte #$00 ; temporary store for target note while playing player so
 
   txa
   and #$10
-  cmp #$10
-  bne .boosting
+  beq .boosting
   lda #$00
   sta p{1}boosting
   jmp .boosting_out
@@ -147,20 +146,16 @@ targetnote: .byte #$00 ; temporary store for target note while playing player so
 
   txa
   and #$01
-  cmp #$01
-  bne .up
+  beq .up
   txa
   and #$02
-  cmp #$02
-  bne .down
+  beq .down
   txa
   and #$04
-  cmp #$04
-  bne .left
+  beq .left
   txa
   and #$08
-  cmp #$08
-  bne .right
+  beq .right
 
   jmp .out ; no direction pressed - keep current dir
 
@@ -1229,8 +1224,7 @@ put_pixel SUBROUTINE ; x, y: position on screen
   ; check if we want to draw or clear
   lda $02
   and #$80
-  cmp #$80
-  beq .clear
+  bne .clear
   lda #$00
   sta .s_clear
   jmp .clear_check_cont
