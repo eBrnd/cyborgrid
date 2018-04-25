@@ -602,6 +602,11 @@ get_ready_screen SUBROUTINE
   write_string $17, press_fire_msg1, $0598, $04
   write_string $19, press_fire_msg2, $05bf, $04
 
+  write_string $08, info0, $0748, $03
+  write_string $0d, info1, $0770, $03
+  write_string $0e, info2, $0798, $03
+  write_string $1a, info3, $07c0, $03
+
   jsr wait_for_both_fire_buttons
 
   rts
@@ -609,6 +614,11 @@ get_ready_screen SUBROUTINE
 get_ready_msg1: .byte "GET READY"
 press_fire_msg1: .byte 80,18,5,19,19,32,2,15,20,8,32,6,9,18,5,32,2,21,20,20,15,14,19
 press_fire_msg2: .byte 1,20,32,20,8,5,32,19,1,13,5,32,20,9,13,5,32,20,15,32,19,20,1,18,20
+
+info0: .byte 5,2,18,14,4,46,4,5
+info1: .byte 3,8,1,15,19,45,9,14,11,12,46,4,5
+info2: .byte 18,5,20,18,15,45,1,11,20,9,22,46,4,5
+info3: .byte 7,9,20,8,21,2,46,3,15,13,47,5,2,18,14,4,47,3,25,2,15,18,7,18,9,4
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1070,7 +1080,7 @@ draw_boost_gauge SUBROUTINE
 countdown SUBROUTINE
   ; remove "press both fire buttons..." and other text, because it would change color when we set up
   ; the color memory for gameplay
-  ldy #$19
+  ldy #$1a
   lda #$20 ; space characater
 .delete_message_loop:
   sta $0597,y
@@ -1078,6 +1088,10 @@ countdown SUBROUTINE
   sta $0640,y
   sta $068d,y
   sta $06b5,y
+  sta $0747,y
+  sta $076f,y
+  sta $0797,y
+  sta $07bf,y
   dey
   bne .delete_message_loop
 
