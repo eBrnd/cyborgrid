@@ -986,6 +986,20 @@ game_step SUBROUTINE
   sta .collision
 .p2noboost:
 
+  ; special case: both are in the very same spot.
+  ; player 1 would get the advantage here, because they are drawn first.
+  ; to be fair, we have to check that separately and force a draw.
+  lda p1x
+  cmp p2x
+  bne .out
+  lda p1y
+  cmp p2y
+  bne .out
+
+  lda #$03 ; force draw
+  sta .collision
+
+.out:
   lda .collision
   rts
 
