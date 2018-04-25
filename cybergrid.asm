@@ -880,8 +880,10 @@ score_screen SUBROUTINE ; sets a to 1 if "game over", 0 for "play another round"
 
 .p1wins:
   lda #$31
+  jmp .wins_out
 .p2wins:
   lda #$32
+.wins_out:
   sta winning_msg+7
 
   write_string $0a, game_over_msg, $04d7, $05
