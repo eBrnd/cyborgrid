@@ -680,16 +680,24 @@ prepare_explosion_sprites SUBROUTINE
   ldx #$40
 .copy_explosion_sprite:
   dex
-  lda sprite_expl,x
+  lda sprite_expl_1,x
   sta $8400,x
+  lda sprite_expl_2,x
   sta $8440,x
+  lda sprite_expl_3,x
+  sta $8480,x
   cpx #$00
   bne .copy_explosion_sprite
 
   lda #$10 ; sprite address / 64 (in vic's bank)
   sta $83f8
+  sta $83fb
   lda #$11
   sta $83f9
+  sta $83fc
+  lda #$12
+  sta $83fa
+  sta $83fd
 
   rts
 
@@ -752,10 +760,14 @@ do_explosion SUBROUTINE
 
   lda #$0a
   sta $d027
-  lda #$0e
   sta $d028
+  sta $d029
+  lda #$0e
+  sta $d02a
+  sta $d02b
+  sta $d02c
 
-  lda #$03 ; set it for all sprites...
+  lda #$3f ; set it for all sprites...
   sta $d017 ; double height
   sta $d01d ; double width
 
@@ -768,17 +780,21 @@ do_explosion SUBROUTINE
   cmp #$80
   bmi .no_high_bit_1
   tay
-  lda #$01
+  lda #$03
   sta $d010
   tya
 .no_high_bit_1:
   asl
   sta $d000
+  sta $d002
+  sta $d004
   lda p1y
   clc
   adc #$10
   asl
   sta $d001
+  sta $d003
+  sta $d005
 
   ; player 2 position
   lda p2x
@@ -787,29 +803,47 @@ do_explosion SUBROUTINE
   cmp #$80
   bmi .no_high_bit_2
   tay
-  lda #$02
+  lda #$38
   ora $d010
   sta $d010
   tya
 .no_high_bit_2:
   asl
-  sta $d002
+  sta $d006
+  sta $d008
+  sta $d00a
   lda p2y
   clc
   adc #$10
   asl
-  sta $d003
+  sta $d007
+  sta $d009
+  sta $d00b
 
-  lda #$03
+  lda #$09
   sta $d015 ; sprite enable
 
-  ldx #$80
+  ldx #$08
+  stx frame_ctr
+  jsr wait_frame_ctr
+
+  asl $d015
+
+  stx frame_ctr
+  jsr wait_frame_ctr
+
+  asl $d015
+
   stx frame_ctr
   jsr wait_frame_ctr
 
   ; disable explosion sprites again
   lda #$00
   sta $d015
+
+  ldx #$20
+  stx frame_ctr
+  jsr wait_frame_ctr
 
   rts
 
@@ -1657,7 +1691,7 @@ stop_game_sound SUBROUTINE
   org $2000
   INCBIN "titlescreen-bitmap.prg" ; length: $1f40
 
-  ; no org directives here, let the assembler put it wherever it fits, as long as sprites fit
+  ; no org directives here, let the assembler put it wherever it fits, as long as number sprites fit
   ; before $4000 it's fine
   INCLUDE "sprites.asm"
 
