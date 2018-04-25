@@ -730,6 +730,16 @@ game_round SUBROUTINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 do_explosion SUBROUTINE
+  ; play sound
+  lda #$81
+  sta $d412 ; dedicated noise channel
+  sta $d404 ; also switch player sound to noise to add some randomized, fuller sound
+  sta $d40b
+  lda #$80
+  sta $d412
+  sta $d404
+  sta $d40b
+
   lda #$0a
   sta $d027
   lda #$0e
@@ -1564,10 +1574,11 @@ start_game_sound SUBROUTINE
   sta $d407 ; voice 2 freq
   sta $d408
 
+  lda #$01
   sta $d405 ; v1 AD
   sta $d40c ; v2 AD
 
-  lda $f0
+  lda $f4
   sta $d406 ; v1 SR
   sta $d40d ; v2 SR
 
@@ -1584,6 +1595,19 @@ start_game_sound SUBROUTINE
   stx p1note
   stx p2note
 
+  ; initialize explosion noise
+  lda #$08 ; frequency
+  sta $d40e
+  sta $d40f
+
+  lda #$00 ; AD
+  sta $d413
+  lda #$fa ; SR
+  sta $d414
+
+  lda #$80 ; noise (don't gate it yet)
+  sta $d412
+
   rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1596,9 +1620,6 @@ stop_game_sound SUBROUTINE
   stx p1note
   stx p2note
 
-  ldx #$10
-  stx $d404
-  stx $d40b
   rts
 
 ; assets ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
