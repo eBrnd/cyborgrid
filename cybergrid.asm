@@ -92,6 +92,12 @@ targetnote: .byte #$00 ; temporary store for target note while playing player so
   nop
   REPEND
 
+  IF {3} == $7b
+  nop
+  nop
+  nop
+  EIF
+
   lda #$00
   sta $d020
   sta $d021
@@ -452,8 +458,7 @@ main_irq:
   line_irq irq_04, irq_05, $b3, $c3
   line_irq irq_05, irq_06, $c3, $d3
   line_irq irq_06, irq_07, $d3, $e3
-  line_irq irq_07, irq_08, $e3, $f0
-  line_irq irq_08, main_irq, $f0, $11
+  line_irq irq_07, main_irq, $e3, $11
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
