@@ -133,9 +133,9 @@ targetnote: .byte #$00 ; temporary store for target note while playing player so
 
   MAC read_input ; player number
   IF {1} == 1
-  ldx $dc00
-  ELSE
   ldx $dc01
+  ELSE
+  ldx $dc00
   EIF
   ldy p{1}prevdir
 
