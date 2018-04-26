@@ -737,7 +737,7 @@ game_round SUBROUTINE
 
 .crashed:
   sta .tmp ; save accumulator for next round
-  jsr stop_game_sound
+  jsr stop_game_sound ; does not touch accumulator
   jsr do_explosion
   lda .tmp
 
@@ -747,7 +747,9 @@ game_round SUBROUTINE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-do_explosion SUBROUTINE
+do_explosion SUBROUTINE ; a: bits 0 or/and 1 set if player 1/2 crashed
+  tax
+
   ; play sound
   lda #$81
   sta $d412 ; dedicated noise channel
@@ -820,8 +822,21 @@ do_explosion SUBROUTINE
   sta $d009
   sta $d00b
 
-  lda #$09
-  sta $d015 ; sprite enable
+; enable sprite(s) for player(s) who crashed
+  txa
+  and #$01
+  beq .nocrash_p1
+  lda #$01
+  sta $d015
+.nocrash_p1:
+
+  txa
+  and #$02
+  beq .nocrash_p2
+  lda #$08
+  ora $d015
+  sta $d015
+.nocrash_p2:
 
   ldx #$08
   stx frame_ctr
