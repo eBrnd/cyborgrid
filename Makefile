@@ -1,4 +1,4 @@
-TARGET=cybergrid
+TARGET=cyborgrid
 .PHONE: all clean
 
 all: $(TARGET).prg
