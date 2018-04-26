@@ -715,6 +715,7 @@ game_round SUBROUTINE
   stx p1x
   sty p1y
   ldx #$64
+  ldy #$33
   stx p2x
   sty p2y
 
@@ -722,10 +723,12 @@ game_round SUBROUTINE
   lda #$00
   sta p1dir
   sta p1prevdir
+  lda #$02
   sta p2dir
   sta p2prevdir
 
   ; reset boost
+  lda #$00
   sta p1boost
   sta p2boost
 
