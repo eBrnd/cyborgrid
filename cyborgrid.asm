@@ -785,12 +785,14 @@ do_explosion SUBROUTINE ; a: bits 0 or/and 1 set if player 1/2 crashed
   sta $d010 ; collects high bits of all the sprite x positions
   ; player 1 position
   lda p1x
+  beq .no_subtract_1 ; don't subtract 1 if it's already 0
   sec
   sbc #$01
+.no_subtract_1:
   cmp #$80
   bmi .no_high_bit_1
   tay
-  lda #$03
+  lda #$07
   sta $d010
   tya
 .no_high_bit_1:
@@ -808,8 +810,10 @@ do_explosion SUBROUTINE ; a: bits 0 or/and 1 set if player 1/2 crashed
 
   ; player 2 position
   lda p2x
+  beq .no_subtract_2
   sec
   sbc #$01
+.no_subtract_2:
   cmp #$80
   bmi .no_high_bit_2
   tay
