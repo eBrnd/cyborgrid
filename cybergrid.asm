@@ -1057,6 +1057,8 @@ game_step SUBROUTINE
   cmp p2y
   bne .out
 
+  inc p1x ; offset player 1 position a little, so explosion sprites don't completely overlap
+
   lda #$03 ; force draw
   sta .collision
 
